@@ -161,6 +161,29 @@
   .seat-open-btn{font-size:.78rem; padding:9px 14px;}
 
   .queue-strip{font-size:.68rem; color:var(--ink-dim); text-align:center; margin-top:4px;}
+  .player-card{display:flex;align-items:center;gap:8px;}
+  .arena-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:1.75rem;background:linear-gradient(180deg,#fff,#bcd4ff);border:3px solid var(--gold);
+    box-shadow:0 5px 14px rgba(0,0,0,.28);flex:none;transition:transform .25s ease;}
+  .arena-avatar.p2{border-color:#ff8177;}
+  .arena-avatar.rps-ready{animation:avatarBounce .55s ease-in-out infinite alternate;}
+  @keyframes avatarBounce{from{transform:translateY(0) scale(1)}to{transform:translateY(-5px) scale(1.05)}}
+  .rps-emo{position:relative;}
+  .rps-emo span{transition:transform .2s ease,opacity .2s ease;}
+  .rps-emo.rps-reveal span{animation:rpsReveal .55s cubic-bezier(.2,.8,.2,1);}
+  @keyframes rpsReveal{0%{transform:scale(.25) rotate(-20deg);opacity:.2}70%{transform:scale(1.3) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  .rps-emo.rps-winner span{animation:rpsWin .8s ease-in-out infinite alternate;}
+  @keyframes rpsWin{to{transform:translateY(-7px) scale(1.12)}}
+  .chip-panel{display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:rgba(0,0,0,.28);padding:7px 10px;border-radius:14px;}
+  .chip{width:38px;height:38px;border-radius:50%;border:3px dashed rgba(255,255,255,.8);color:#fff;font-weight:900;
+    font-size:.65rem;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.15);}
+  .chip.selected{outline:3px solid #fff;transform:translateY(-3px);}
+  .chip.c100{background:#2f8fe0}.chip.c500{background:#33c47a}.chip.c1000{background:#a86cff}.chip.c5000{background:#ff8a1e}
+  .bet-target{padding:8px 11px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-weight:800;cursor:pointer;}
+  .bet-target.selected{outline:2px solid var(--gold);background:rgba(255,201,60,.2);}
+  .queue-box{margin-top:7px;padding:6px 9px;border-radius:10px;background:rgba(255,255,255,.04);font-size:.7rem;color:var(--ink-dim);}
+  .pending-badge{color:#7ff0b4;font-weight:800;}
+  .public-name-note{font-size:.7rem;color:var(--gold);text-align:center;margin-top:5px;}
 </style>
 </head>
 <body>
@@ -230,7 +253,7 @@
     <div class="arena">
       <div class="side p1side" id="p1side">
         <div class="side-head">
-          <span id="p1-name">🔴 P1: Trống</span>
+          <div class="player-card"><div class="arena-avatar" id="p1-avatar">🧑</div><span id="p1-name">🔴 P1: Trống</span></div>
           <span class="secret-lock" id="p1-lock">🔒 chưa chọn dây chết</span>
         </div>
         <div class="wires" id="p1-wires"></div>
@@ -245,7 +268,7 @@
 
       <div class="side p2side" id="p2side">
         <div class="side-head">
-          <span id="p2-name">🔵 P2: Trống</span>
+          <div class="player-card"><div class="arena-avatar p2" id="p2-avatar">🧑</div><span id="p2-name">🔵 P2: Trống</span></div>
           <span class="secret-lock" id="p2-lock">🔒 chưa chọn dây chết</span>
         </div>
         <div class="wires" id="p2-wires"></div>
@@ -261,15 +284,18 @@
       </div>
 
       <div class="bet-panel" id="spectator-tools" style="display:none;">
-        <span class="lbl">Cược ván này:</span>
-        <button class="btn bet-btn btn-blue" onclick="placeRoundBet('P1',100)">P1 100 (x2)</button>
-        <button class="btn bet-btn btn-red" onclick="placeRoundBet('P2',100)">P2 100 (x2)</button>
-        <span class="lbl">| Đoán người thắng trận:</span>
-        <button class="btn bet-btn btn-green" onclick="predictWinner('P1')">P1 x3</button>
-        <button class="btn bet-btn btn-green" onclick="predictWinner('P2')">P2 x3</button>
+        <span class="lbl">CHIP:</span>
+        <button class="chip c100" data-chip="100" onclick="selectChip(100)">100</button>
+        <button class="chip c500" data-chip="500" onclick="selectChip(500)">500</button>
+        <button class="chip c1000" data-chip="1000" onclick="selectChip(1000)">1K</button>
+        <button class="chip c5000" data-chip="5000" onclick="selectChip(5000)">5K</button>
+        <button class="bet-target" id="target-p1" onclick="selectBetTarget('P1')">🔴 P1</button>
+        <button class="bet-target" id="target-p2" onclick="selectBetTarget('P2')">🔵 P2</button>
+        <button class="btn btn-green bet-btn" onclick="placeMatchBet()">ĐẶT CHIP ×3</button>
+        <span class="pending-badge" id="pending-payout">💰 Chưa có tiền chờ trả</span>
       </div>
 
-      <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="takeEmptySeat()">🎮 Vào ghế trống</button>
+      <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="registerForSeat()">🎮 Đăng ký vào ghế</button>
     </div>
     <div class="queue-strip" id="queue-strip"></div>
   </div>
@@ -412,10 +438,13 @@ let spectators = []; // {name,isBot}
 let currentRoundWinner = null;
 let p1Move=null, p2Move=null;
 let phase = 'idle'; // idle | secretpick | rps | reveal | cut | ended
-let roundBetP1 = 0, roundBetP2 = 0; // this-round spectator round bets total
-let predictBetP1 = 0, predictBetP2 = 0; // whole-match prediction bets total
-let myRoundBet = null;   // {target, amount}
+let predictBetP1 = 0, predictBetP2 = 0; // match prediction pool
 let myPredictBet = null; // {target, amount}
+let selectedChip = 100;
+let selectedBetTarget = null;
+let pendingPayout = 0;
+let pendingPayoutWinner = null;
+let seatQueue = []; // FIFO: {name, joinedAt, isMe}
 let phaseTimer = null;
 let botMoveTimeout = null;
 
@@ -445,13 +474,13 @@ function openOnlineRoleModal(){
     <div class="modal-card">
       <h2>CHƠI ONLINE</h2>
       <div class="modal-sub">Chọn vai trò của bạn trong trận đấu</div>
-      <div class="role-opt" onclick="closeModal(); openMatchmaking('player')">
+      <div class="role-opt" onclick="openPublicNameModal()">
         <div class="ic">🎮</div>
-        <div class="txt"><b>Người chơi</b><span>Tham gia cắt dây, không mất xu mỗi trận, nhận 1/2 tổng tiền khán giả cược cho bạn khi thắng</span></div>
+        <div class="txt"><b>Người chơi</b><span>Bắt buộc công khai tên trước khi vào ghế. Chỉ người thật mới được làm người chơi.</span></div>
       </div>
       <div class="role-opt" onclick="closeModal(); openSpectateBrowser()">
         <div class="ic">👁️</div>
-        <div class="txt"><b>Khán giả</b><span>Xem & đặt cược — mất 10 xu mỗi lượt oẳn tù tì</span></div>
+        <div class="txt"><b>Khán giả</b><span>Chỉ xem và đặt chip vào người bạn tin sẽ thắng. Tiền thắng x3, không thể thu hồi chip.</span></div>
       </div>
     </div>
   `);
@@ -468,52 +497,68 @@ function genFakeRooms(){
     fakeRooms.push({ code: (1000+Math.floor(Math.random()*9000)).toString(), host: randomName(), waiting: Math.random()<0.7 });
   }
 }
-function openMatchmaking(){
+function openPublicNameModal(afterAction='match'){
+  afterPublicNameAction=afterAction;
+  closeModal();
+  openModal(`
+    <div class="modal-card">
+      <h2>CÔNG KHAI TÊN NGƯỜI CHƠI</h2>
+      <div class="modal-sub">Tên này sẽ hiển thị công khai trên bàn chơi. Không dùng biệt danh ẩn danh.</div>
+      <input class="code-input" id="public-player-name" maxlength="18" placeholder="Nhập tên của bạn" style="letter-spacing:normal;">
+      <div class="public-name-note">⚠️ Người chơi thật mới được ngồi vào P1/P2.</div>
+      <button class="btn btn-cta" style="width:100%;padding:12px;margin-top:10px;" onclick="confirmPublicPlayerName()">Tiếp tục</button>
+    </div>`);
+}
+function confirmPublicPlayerName(){
+  const input=document.getElementById('public-player-name');
+  const name=(input?.value||'').trim();
+  if(name.length<2){toast('Tên công khai phải có ít nhất 2 ký tự');return;}
+  closeModal();
+  if(afterPublicNameAction==='friend') openFriendModal();
+  else openMatchmaking(name);
+  afterPublicNameAction=null;
+}
+let publicPlayerName='';
+let afterPublicNameAction=null;
+function openMatchmaking(playerName=''){
+  if(playerName) publicPlayerName=playerName;
   genFakeRooms();
   openModal(`
     <div class="modal-card">
-      <h2>GHÉP TRẬN ONLINE</h2>
-      <div class="modal-sub">Vào phòng đang chờ hoặc ghép ngẫu nhiên với người khác</div>
+      <h2>GHÉP NGƯỜI CHƠI</h2>
+      <div class="modal-sub">Không có máy trong ghế người chơi. Bạn sẽ chờ một người thật khác.</div>
       <div class="room-list">
         ${fakeRooms.map(r=>`
           <div class="room-row">
-            <div class="rinfo"><b>Phòng của ${r.host}</b><span class="rtag">${r.waiting ? 'Đang chờ đối thủ · Mã ' + r.code : 'Đủ người · thử phòng khác'}</span></div>
-            <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" ${r.waiting?'':'disabled'} onclick="closeModal(); joinRoomAsPlayer('${r.host}')">Vào</button>
-          </div>
-        `).join('')}
+            <div class="rinfo"><b>Phòng của ${r.host}</b><span class="rtag">${r.waiting ? 'Đang chờ người chơi · Mã ' + r.code : 'Đã đủ 2 người'}</span></div>
+            <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" ${r.waiting?'':'disabled'} onclick="joinRoomAsPlayer('${r.host}')">Vào</button>
+          </div>`).join('')}
       </div>
-      <button class="btn btn-cta" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeModal(); randomMatch()">🎲 Ghép Ngẫu Nhiên</button>
-    </div>
-  `);
+      <button class="btn btn-cta" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeModal(); createHumanWaitingRoom()">🎲 Tìm người chơi</button>
+    </div>`);
 }
 function joinRoomAsPlayer(hostName){
   startNewSession();
   myRole='p1';
-  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
-  showArenaWaitingForOpponent(hostName, true);
-}
-function randomMatch(){
-  startNewSession();
-  myRole='p1';
-  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
-  showArenaWaitingForOpponent(null, false);
-}
-function showArenaWaitingForOpponent(hostName, instant){
+  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true};
+  seats.p2=null;
   showScreen('screen-arena');
   renderSeats();
-  setStatus('Đang tìm đối thủ...');
+  setStatus(`Đang chờ ${hostName} tham gia...`);
   setTimer('--');
-  const delay = instant ? 700 : 1500 + Math.random()*1500;
-  setTimeout(()=>{
-    const oppName = hostName || randomName();
-    seats.p2 = { name: oppName, isBot:true, secretWire:null, wiresCut:[], isMe:false };
-    renderSeats();
-    toast(`${oppName} đã vào phòng!`);
-    fillBotSpectators();
-    beginSecretPickPhase();
-  }, delay);
+  document.getElementById('rps-group').style.display='none';
 }
-
+function createHumanWaitingRoom(){
+  startNewSession();
+  myRole='p1';
+  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true};
+  seats.p2=null;
+  showScreen('screen-arena');
+  renderSeats();
+  setStatus('Đang chờ người chơi thật vào ghế P2...');
+  setTimer('--');
+  document.getElementById('rps-group').style.display='none';
+}
 /* =========================================================
    SPECTATE BROWSER
    ========================================================= */
@@ -535,20 +580,27 @@ function openSpectateBrowser(){
 function joinAsSpectator(){
   startNewSession();
   myRole='spectator';
-  seats.p1 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
-  seats.p2 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+  // Khán giả chỉ vào xem/cược. Không tự tạo bot trong ghế người chơi.
+  seats.p1=null; seats.p2=null;
   showScreen('screen-arena');
   document.getElementById('spectator-tools').style.display='flex';
   renderSeats();
   fillBotSpectators();
-  beginSecretPickPhase();
+  setStatus('Đang tìm trận có 2 người chơi thật...');
+  setTimer('--');
+  document.getElementById('rps-group').style.display='none';
+  document.getElementById('take-seat-btn').style.display='none';
+  updateQueueStrip();
 }
-
 /* =========================================================
    FRIEND ROOM (create / join by code)
    ========================================================= */
 function openFriendModal(){
   playClick();
+  if(!publicPlayerName){
+    openPublicNameModal('friend');
+    return;
+  }
   openModal(`
     <div class="modal-card">
       <h2>CHƠI VỚI BẠN</h2>
@@ -580,13 +632,13 @@ function switchFriendTab(tab){
       closeModal();
       startNewSession();
       myRole='p1';
-      seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
-      seats.p2 = { name: 'Bạn của bạn', isBot:true, secretWire:null, wiresCut:[], isMe:false };
+      seats.p1 = { name:publicPlayerName, isBot:false, secretWire:null, wiresCut:[], isMe:true };
+      seats.p2 = null;
       showScreen('screen-arena');
       renderSeats();
-      toast('Bạn của bạn đã vào phòng!');
+      setStatus('Đang chờ người chơi thật thứ hai vào phòng...');
+      document.getElementById('rps-group').style.display='none';
       fillBotSpectators();
-      beginSecretPickPhase();
     }, 2600 + Math.random()*1800);
   } else {
     body.innerHTML = `
@@ -602,13 +654,13 @@ function submitJoinCode(){
   closeModal();
   startNewSession();
   myRole='p1';
-  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
-  seats.p2 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+  seats.p1 = { name:publicPlayerName, isBot:false, secretWire:null, wiresCut:[], isMe:true };
+  seats.p2 = null;
   showScreen('screen-arena');
   renderSeats();
-  toast(`Đã vào phòng ${v}`);
+  toast(`Đã vào phòng ${v} — đang chờ người chơi thật`);
+  document.getElementById('rps-group').style.display='none';
   fillBotSpectators();
-  beginSecretPickPhase();
 }
 
 /* =========================================================
@@ -616,8 +668,9 @@ function submitJoinCode(){
    ========================================================= */
 function startNewSession(){
   seats.p1 = null; seats.p2 = null; spectators = [];
-  roundBetP1=0; roundBetP2=0; predictBetP1=0; predictBetP2=0;
-  myRoundBet=null; myPredictBet=null; p1Move=null; p2Move=null;
+  predictBetP1=0; predictBetP2=0;
+  myPredictBet=null; selectedBetTarget=null; pendingPayout=0; pendingPayoutWinner=null; seatQueue=[];
+  p1Move=null; p2Move=null;
   phase='idle'; myRole=null;
   document.getElementById('spectator-tools').style.display='none';
   document.getElementById('take-seat-btn').style.display='none';
@@ -625,34 +678,35 @@ function startNewSession(){
   startAmbient();
 }
 function fillBotSpectators(){
-  const n = Math.floor(Math.random()*3); // 0-2 bot spectators
+  const n = Math.floor(Math.random()*3);
   for(let i=0;i<n;i++){
-    const bot = { name: randomName()+' 🤖', isBot:true };
-    spectators.push(bot);
-    const target = Math.random()<0.5 ? 'P1':'P2';
-    const amt = 500;
-    if(coins>=0){ // bots don't touch player coins
-      if(target==='P1') roundBetP1 += amt; else roundBetP2 += amt;
-    }
+    spectators.push({name:randomName()+' 🤖',isBot:true});
   }
-  updatePools();
   updateQueueStrip();
 }
 function updateQueueStrip(){
-  const el = document.getElementById('queue-strip');
-  const botCount = spectators.filter(s=>s.isBot).length;
-  const humanWaiting = myRole==='spectator' ? 1 : 0;
-  el.textContent = (botCount+humanWaiting)>0 ? `👁️ ${botCount+humanWaiting} khán giả đang xem trận này` : '';
+  const el=document.getElementById('queue-strip');
+  const waiting=seatQueue.length;
+  const botCount=spectators.filter(x=>x.isBot).length;
+  el.textContent = waiting
+    ? `👁️ ${botCount} khán giả · ⏳ ${waiting} người đã đăng ký ghế (FIFO)`
+    : `👁️ ${botCount} khán giả · Chưa có người đăng ký ghế`;
 }
+const avatarSet=['🧑‍🚀','🧙','🥷','🦸','🧑‍🎨','🧑‍💻','🧑‍🚀','🤠'];
+function avatarFor(s,idx){ return s?.avatar || avatarSet[idx%avatarSet.length]; }
 function seatLabel(seatKey){
-  const s = seats[seatKey];
-  const emoji = seatKey==='p1' ? '🔴' : '🔵';
+  const s=seats[seatKey];
+  const emoji=seatKey==='p1'?'🔴':'🔵';
   if(!s) return `${emoji} ${seatKey.toUpperCase()}: Trống`;
-  return `${emoji} ${seatKey.toUpperCase()}: ${s.isMe ? 'Bạn' : s.name}`;
+  return `${emoji} ${seatKey.toUpperCase()}: ${s.name}${s.isMe?' (Bạn)':''}`;
 }
 function renderSeats(){
   document.getElementById('p1-name').textContent = seatLabel('p1');
   document.getElementById('p2-name').textContent = seatLabel('p2');
+  document.getElementById('p1-avatar').textContent = avatarFor(seats.p1,0);
+  document.getElementById('p2-avatar').textContent = avatarFor(seats.p2,1);
+  document.getElementById('p1-avatar').classList.toggle('rps-ready', phase==='rps' && !!seats.p1);
+  document.getElementById('p2-avatar').classList.toggle('rps-ready', phase==='rps' && !!seats.p2);
   ['p1','p2'].forEach(k=>{
     const side = document.getElementById(k+'side');
     side.classList.toggle('eliminated', !seats[k]);
@@ -669,8 +723,10 @@ function renderSeats(){
   document.getElementById('take-seat-btn').style.display = (myRole==='spectator' && (!seats.p1 || !seats.p2)) ? 'inline-block' : 'none';
 }
 function updatePools(){
-  document.getElementById('p1-pool').textContent = `Cược cho P1: ${roundBetP1+predictBetP1} xu`;
-  document.getElementById('p2-pool').textContent = `Cược cho P2: ${roundBetP2+predictBetP2} xu`;
+  document.getElementById('p1-pool').textContent=`Tổng chip P1: ${predictBetP1} xu`;
+  document.getElementById('p2-pool').textContent=`Tổng chip P2: ${predictBetP2} xu`;
+  const pp=document.getElementById('pending-payout');
+  if(pp) pp.textContent=pendingPayout>0 ? `💰 ${pendingPayout} xu sẽ trả ở thời gian chuẩn bị` : '💰 Chưa có tiền chờ trả';
 }
 function setStatus(t){ document.getElementById('game-status').textContent = t; }
 function setTimer(t){ document.getElementById('timer').textContent = t; }
@@ -680,16 +736,12 @@ function setTimer(t){ document.getElementById('timer').textContent = t; }
    ========================================================= */
 function beginSecretPickPhase(){
   phase = 'secretpick';
+  payPendingPayout();
   setStatus('Mỗi người chơi chọn 1 dây chết bí mật');
   setTimer('🔒');
   document.getElementById('rps-group').style.display = 'none';
   renderSeats();
-  // bots auto-pick
-  ['p1','p2'].forEach(k=>{
-    if(seats[k] && seats[k].isBot){
-      seats[k].secretWire = 1+Math.floor(Math.random()*10);
-    }
-  });
+  // Không có bot trong ghế người chơi: chỉ người thật mới được chọn dây chết.
   if(myRole==='p1' || myRole==='p2'){
     openWirePickerModal(myRole);
   } else {
@@ -742,8 +794,7 @@ function startRPSPhase(){
   document.querySelectorAll('.rps-btn').forEach(b=>b.classList.remove('picked'));
   setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)');
   updatePools(); updateQueueStrip();
-
-  if(myRole==='spectator'){ coins -= 10; syncCoinsUI(); }
+  renderSeats();
 
   ['p1','p2'].forEach(k=>{
     if(seats[k].isBot){
@@ -785,8 +836,12 @@ function revealRPS(){
   phase='reveal';
   clearInterval(phaseTimer);
   const emo={rock:'✊',paper:'✋',scissors:'✌️'};
+  const rps=document.querySelector('.rps-emo');
+  rps.classList.remove('rps-reveal','rps-winner');
+  void rps.offsetWidth;
   document.getElementById('p1-move').textContent = emo[p1Move];
   document.getElementById('p2-move').textContent = emo[p2Move];
+  rps.classList.add('rps-reveal');
   setStatus('BƯỚC 2 · Kết quả oẳn tù tì...');
   setTimer('⏱');
 
@@ -795,9 +850,8 @@ function revealRPS(){
   else { currentRoundWinner='P2'; }
 
   setTimeout(()=>{
-    // resolve round bet (x2) — only when there IS a winner (not a tie)
     if(currentRoundWinner){
-      resolveRoundBet(currentRoundWinner);
+      if(rps) rps.classList.add('rps-winner');
       setTimeout(()=>startCuttingPhase(), 300);
     } else {
       toast('Hòa! Oẳn tù tì lại...');
@@ -805,18 +859,6 @@ function revealRPS(){
     }
   }, 2000);
 }
-function resolveRoundBet(winnerSeat){
-  if(myRoundBet && myRoundBet.target===winnerSeat){
-    const payout = myRoundBet.amount*2;
-    coins += payout;
-    toast(`🎉 Cược ván đúng! +${payout} xu`);
-    playChime(true);
-    syncCoinsUI();
-  }
-  roundBetP1=0; roundBetP2=0; myRoundBet=null;
-  updatePools();
-}
-
 /* =========================================================
    CUTTING PHASE (7s) — winner sees only uncut wires, enlarged
    ========================================================= */
@@ -920,89 +962,133 @@ function renderDeadWireFlash(seatKey, wireNum){
    ELIMINATION / MATCH RESOLUTION
    ========================================================= */
 function eliminatePlayer(loserSeatKey){
-  const winnerSeatKey = loserSeatKey==='p1' ? 'p2' : 'p1';
-  const winnerTag = winnerSeatKey==='p1' ? 'P1' : 'P2';
-  const loser = seats[loserSeatKey];
-  const wasMe = loser.isMe;
+  const winnerSeatKey=loserSeatKey==='p1'?'p2':'p1';
+  const winnerTag=winnerSeatKey==='p1'?'P1':'P2';
+  const loser=seats[loserSeatKey];
+  if(!loser) return;
 
-  toast(`💥 ${loser.isMe?'Bạn':loser.name} bị loại xuống làm khán giả!`);
+  toast(`💥 ${loser.name} bị loại! Ghế được mở cho khán giả đăng ký.`);
+  const winner=seats[winnerSeatKey];
 
-  // predict-winner payout (x3)
+  // Chuyển tiền thắng sang trạng thái chờ, KHÔNG trả ngay.
   if(myPredictBet && myPredictBet.target===winnerTag){
-    const payout = myPredictBet.amount*3;
-    coins += payout;
-    toast(`🏆 Đoán đúng người thắng! +${payout} xu`);
-    playChime(true);
-  }
-  // player reward: half of everything bet on them this match
-  const winner = seats[winnerSeatKey];
-  if(winner.isMe){
-    const totalOnWinner = winnerTag==='P1' ? (roundBetP1+predictBetP1) : (roundBetP2+predictBetP2);
-    const reward = Math.floor(totalOnWinner/2);
-    if(reward>0){ coins += reward; toast(`🎮 Bạn nhận ${reward} xu (1/2 tiền khán giả cược cho bạn)`); }
+    pendingPayout=myPredictBet.amount*3;
+    pendingPayoutWinner=winnerTag;
   }
   syncCoinsUI();
 
-  if(wasMe){
+  if(loser.isMe){
     myRole='spectator';
     document.getElementById('spectator-tools').style.display='flex';
   }
-  spectators.push({name: loser.isMe?'Bạn':loser.name, isBot: loser.isBot, wasPlayer:true});
-  seats[loserSeatKey] = null;
-  roundBetP1=0; roundBetP2=0; predictBetP1=0; predictBetP2=0; myRoundBet=null; myPredictBet=null;
-  renderSeats(); updatePools(); updateQueueStrip();
+  spectators.push({name:loser.name,isBot:false,wasPlayer:true});
+  seats[loserSeatKey]=null;
+  predictBetP1=0; predictBetP2=0; myPredictBet=null;
+  selectedBetTarget=null;
+  updatePools(); renderSeats();
 
   phase='idle';
-  setStatus('Đang chờ khán giả vào ghế trống...');
+  setStatus('🚨 Ghế trống! Khán giả có thể đăng ký — ai đăng ký trước được xét trước.');
   setTimer('--');
   document.getElementById('rps-group').style.display='none';
+  document.getElementById('take-seat-btn').style.display = myRole==='spectator' ? 'inline-block':'none';
+  updateQueueStrip();
 
-  // auto-fill empty seat with a waiting bot/challenger after a short delay if human doesn't take it
+  // KHÔNG tự động cho máy vào ghế.
+  // Hệ thống chỉ chọn người đầu tiên trong hàng đợi.
+  setTimeout(processSeatQueue,500);
+}
+
+function openSeatRegistration(){
+  openModal(`
+    <div class="modal-card">
+      <h2>ĐĂNG KÝ VÀO GHẾ</h2>
+      <div class="modal-sub">Tên người chơi sẽ được công khai trên bàn. Hệ thống chọn theo thứ tự đăng ký.</div>
+      <input class="code-input" id="queue-player-name" maxlength="18" placeholder="Tên công khai" style="letter-spacing:normal;">
+      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="confirmSeatRegistration()">Xác nhận đăng ký</button>
+    </div>`);
+}
+function confirmSeatRegistration(){
+  const name=(document.getElementById('queue-player-name')?.value||'').trim();
+  if(name.length<2){toast('Tên công khai phải có ít nhất 2 ký tự');return;}
+  closeModal();
+  myRole='spectator';
+  const already=seatQueue.some(q=>q.isMe);
+  if(already){toast('Bạn đã có trong hàng chờ');return;}
+  seatQueue.push({name,joinedAt:Date.now(),isMe:true});
+  updateQueueStrip();
+  toast(`⏳ Đã đăng ký lúc ${new Date().toLocaleTimeString('vi-VN')}. Chờ hệ thống xét theo thứ tự.`);
+  processSeatQueue();
+}
+function processSeatQueue(){
+  const openSeat=!seats.p1?'p1':(!seats.p2?'p2':null);
+  if(!openSeat || !seatQueue.length) return;
+  const next=seatQueue.shift();
   clearTimeout(window._seatFillTimeout);
-  window._seatFillTimeout = setTimeout(()=>{
-    if(seats[loserSeatKey]) return;
-    seats[loserSeatKey] = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+
+  if(next.isMe){
+    myRole=openSeat;
+    seats[openSeat]={name:next.name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};
+    document.getElementById('spectator-tools').style.display='none';
     renderSeats();
-    toast(`${seats[loserSeatKey].name} đã vào ghế trống`);
-    beginSecretPickPhase();
-  }, 3500);
+    toast(`🎮 Bạn là người đăng ký nhanh nhất — vào ${openSeat.toUpperCase()}!`);
+  }else{
+    // Hàng đợi ngoài máy chủ sẽ được xử lý ở backend; không tạo bot.
+    seatQueue.unshift(next);
+    return;
+  }
+
+  if(seats.p1 && seats.p2) beginSecretPickPhase();
+  else {
+    setStatus(`Đang chờ người chơi thật vào ${openSeat==='p1'?'P2':'P1'}...`);
+    document.getElementById('rps-group').style.display='none';
+  }
 }
 function takeEmptySeat(){
-  const openSeat = !seats.p1 ? 'p1' : (!seats.p2 ? 'p2' : null);
-  if(!openSeat){ toast('Không có ghế trống'); return; }
-  clearTimeout(window._seatFillTimeout);
-  myRole = openSeat;
-  seats[openSeat] = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
-  document.getElementById('spectator-tools').style.display='none';
-  renderSeats();
-  toast('Bạn đã vào ghế người chơi!');
-  beginSecretPickPhase();
+  if(!seats.p1 && !seats.p2){toast('Hãy đăng ký trước; hệ thống không cho máy tự ngồi ghế.');return;}
+  openSeatRegistration();
 }
 
 /* =========================================================
-   SPECTATOR BETTING
+   SPECTATOR CHIP BETTING
    ========================================================= */
-function placeRoundBet(target, amount){
-  if(phase!=='rps' && phase!=='secretpick'){ toast('Chỉ đặt cược trước/khi đang oẳn tù tì'); return; }
-  if(coins<amount){ toast('Không đủ xu!'); return; }
-  coins -= amount; syncCoinsUI();
-  if(target==='P1') roundBetP1 += amount; else roundBetP2 += amount;
-  myRoundBet = { target, amount };
-  updatePools();
+function selectChip(amount){
+  if(myRole!=='spectator'){toast('Chỉ khán giả mới được đặt chip');return;}
+  selectedChip=amount;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('selected',Number(x.dataset.chip)===amount));
   playClick();
-  toast(`Đã cược ${amount} xu cho ${target} (thắng x2)`);
 }
-function predictWinner(target){
-  if(phase!=='secretpick' && phase!=='idle'){ toast('Chỉ đoán người thắng trận trước khi trận bắt đầu'); return; }
-  const amount = 500;
-  if(coins<amount){ toast('Không đủ xu!'); return; }
-  if(myPredictBet){ toast('Bạn đã đoán rồi cho ván này'); return; }
-  coins -= amount; syncCoinsUI();
-  if(target==='P1') predictBetP1 += amount; else predictBetP2 += amount;
-  myPredictBet = { target, amount };
-  updatePools();
+function selectBetTarget(target){
+  if(myRole!=='spectator'){toast('Chỉ khán giả mới được đặt chip');return;}
+  if(myPredictBet){toast('Chip đã đặt, không thể thu hồi hoặc đổi người');return;}
+  selectedBetTarget=target;
+  document.getElementById('target-p1').classList.toggle('selected',target==='P1');
+  document.getElementById('target-p2').classList.toggle('selected',target==='P2');
+  playClick();
+}
+function placeMatchBet(){
+  if(myRole!=='spectator'){toast('Bạn phải ở vai trò khán giả');return;}
+  if(phase!=='idle' && phase!=='secretpick'){toast('Chỉ được đặt chip trong thời gian chuẩn bị');return;}
+  if(!selectedBetTarget){toast('Hãy chọn P1 hoặc P2 trước');return;}
+  if(myPredictBet){toast('Chip đã đặt và không thể thu hồi');return;}
+  if(coins<selectedChip){toast('Không đủ xu để đặt chip');return;}
+
+  coins-=selectedChip;
+  if(selectedBetTarget==='P1') predictBetP1+=selectedChip; else predictBetP2+=selectedChip;
+  myPredictBet={target:selectedBetTarget,amount:selectedChip};
+  syncCoinsUI(); updatePools(); playChime(true);
+  toast(`🪙 Đã đặt chip ${selectedChip.toLocaleString('vi-VN')} vào ${selectedBetTarget}. Không thể thu hồi · thắng nhận x3.`);
+}
+function payPendingPayout(){
+  if(pendingPayout<=0) return;
+  const amount=pendingPayout;
+  pendingPayout=0;
+  const winner=pendingPayoutWinner;
+  pendingPayoutWinner=null;
+  coins+=amount;
+  syncCoinsUI(); updatePools();
+  toast(`💰 Tiền thắng ${amount.toLocaleString('vi-VN')} xu đã được trả trong thời gian chuẩn bị (${winner} ×3).`);
   playChime(true);
-  toast(`Đã đoán ${target} thắng trận, cược ${amount} xu (x3)`);
 }
 
 /* =========================================================
