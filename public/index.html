@@ -168,13 +168,13 @@
 
   .vs-mid{width:22%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;}
   .vs-mid h1{color:var(--gold); font-size:1.3rem;}
-  .rps-emo{font-size:2.2rem; display:flex; gap:14px;}
-  .rps-emo span{background:rgba(255,255,255,.06); border-radius:50%; width:52px; height:52px; display:flex; align-items:center; justify-content:center;}
+  .rps-emo{font-size:4.8rem; display:flex; gap:28px; transform:scale(1.12); margin:10px 0 14px;}
+  .rps-emo span{background:rgba(255,255,255,.06); border-radius:50%; width:104px; height:104px; display:flex; align-items:center; justify-content:center; font-size:4.4rem; box-shadow:0 8px 24px rgba(0,0,0,.18);}
   .pool-line{font-size:.68rem; color:var(--ink-dim); text-align:center; margin-top:4px;}
 
   .controls{margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
   .rps-group{display:flex; gap:8px;}
-  .rps-btn{font-size:1.5rem; width:48px; height:48px; border-radius:50%; border:none; cursor:pointer; background:linear-gradient(180deg,var(--gold),var(--gold-deep)); box-shadow:0 4px 0 #7a5300;}
+  .rps-btn{font-size:2.15rem; width:72px; height:72px; border-radius:50%; border:none; cursor:pointer; background:linear-gradient(180deg,var(--gold),var(--gold-deep)); box-shadow:0 4px 0 #7a5300;}
   .rps-btn.picked{outline:3px solid #fff;}
   .bet-panel{display:flex; gap:6px; align-items:center; background:rgba(0,0,0,.28); padding:7px 10px; border-radius:14px; flex-wrap:wrap;}
   .bet-panel .lbl{font-size:.72rem; color:var(--ink-dim);}
@@ -330,7 +330,7 @@
       <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="registerForSeat()">🎮 Đăng ký vào ghế</button>
     </div>
     <div class="queue-strip" id="queue-strip"></div><div class="room-code-badge" id="room-code-badge">Phòng: —</div>
-    <div class="seat-hint" id="seat-hint" style="text-align:center;margin-top:7px;font-size:.78rem;color:var(--ink-dim);">💡 Khán giả có thể đăng ký vào ghế trống bằng nút “Đăng ký vào ghế”.</div>
+    <div class="seat-hint" id="seat-hint" style="text-align:center;margin-top:7px;font-size:.78rem;color:var(--ink-dim);">💡 Khán giả có thể đăng ký vào ghế trống. Người bị loại cũng trở về khán giả và phải chờ đăng ký lại.</div>
     
   </div>
 
@@ -638,11 +638,11 @@ function openOnlineRoleModal(){
       <div class="modal-sub">Chọn vai trò trước khi vào phòng</div>
       <div class="role-opt" onclick="selectOnlineRole('player')">
         <div class="ic">🎮</div>
-        <div class="txt"><b>Người chơi</b><span>Đăng nhập Google và công khai tên trước khi ngồi P1/P2.</span></div>
+        <div class="txt"><b>Người chơi</b><span>Người tạo phòng tự động là P1. Người chơi bị loại sẽ về Khán giả và chờ đăng ký ghế trống.</span></div>
       </div>
       <div class="role-opt" onclick="selectOnlineRole('spectator')">
         <div class="ic">👁️</div>
-        <div class="txt"><b>Khán giả</b><span>Chỉ xem trận đấu và theo dõi diễn biến.</span></div>
+        <div class="txt"><b>Khán giả</b><span>Vào phòng để xem trận và có thể đăng ký ghế trống theo thứ tự.</span></div>
       </div>
     </div>
   `);
@@ -715,7 +715,7 @@ function createHumanWaitingRoom(code){
   seats.p2=null;
   showScreen('screen-arena');
   document.getElementById('rps-group').style.display='none';
-  setStatus(`Phòng ${code} · đang chờ P2...`);
+  setStatus(`Phòng ${code} · Bạn là P1 · đang chờ P2...`);
   setTimer('--');
   startAmbient();
   startPeerHost(code);
@@ -802,9 +802,11 @@ let roomReady=false;
 let roomPlayerName='';
 let lastNetPhase='';
 let secretModalOpen=false;
+let roomStartCountdown=0;
+let roomCountdownTimer=null;
 
 function closePeerRoom(){
-  roomReady=false; roomIsHost=false; roomCode=''; roomPlayerName=''; lastNetPhase=''; secretModalOpen=false;
+  roomReady=false; roomIsHost=false; roomCode=''; roomPlayerName=''; lastNetPhase=''; secretModalOpen=false; roomStartCountdown=0; if(roomCountdownTimer){clearInterval(roomCountdownTimer); roomCountdownTimer=null;}
   peerConnections.forEach(c=>{try{c.close()}catch(e){}}); peerConnections=[];
   if(peer){try{peer.destroy()}catch(e){}}
   peer=null;
@@ -812,7 +814,7 @@ function closePeerRoom(){
 function stateForConn(conn){
   const st={
     seats:{p1:seats.p1?{...seats.p1}:null,p2:seats.p2?{...seats.p2}:null},
-    spectators:spectators.map(x=>({...x})), p1Move,p2Move,currentRoundWinner,phase,roomCode
+    spectators:spectators.map(x=>({...x})), p1Move,p2Move,currentRoundWinner,phase,roomCode,roomStartCountdown
   };
   ['p1','p2'].forEach(k=>{ if(st.seats[k] && conn?._roomRole!==k) st.seats[k].secretWire=null; });
   return st;
@@ -834,6 +836,30 @@ function sendToHost(msg){
   if(c?.open){try{c.send(msg);return true;}catch(e){}}
   toast('Kết nối phòng chưa sẵn sàng'); return false;
 }
+function startRoomStartCountdown(){
+  if(!roomIsHost || !seats.p1 || !seats.p2) return;
+  if(roomCountdownTimer){ clearInterval(roomCountdownTimer); roomCountdownTimer=null; }
+  clearInterval(phaseTimer);
+  phase='idle';
+  roomStartCountdown=5;
+  document.getElementById('rps-group').style.display='none';
+  setStatus('🎮 Đủ 2 người chơi · trận đấu bắt đầu sau 5 giây');
+  setTimer(roomStartCountdown+'s');
+  renderSeats();
+  broadcastState();
+  roomCountdownTimer=setInterval(()=>{
+    roomStartCountdown--;
+    setTimer(roomStartCountdown>0 ? roomStartCountdown+'s' : 'GO!');
+    broadcastState();
+    if(roomStartCountdown<=0){
+      clearInterval(roomCountdownTimer);
+      roomCountdownTimer=null;
+      roomStartCountdown=0;
+      beginSecretPickPhase();
+    }
+  },1000);
+}
+
 function startPeerHost(code){
   closePeerRoom(); roomCode=code; roomIsHost=true; roomReady=false;
   peer=new Peer(code,{debug:1});
@@ -872,7 +898,7 @@ function handleNetMessage(conn,msg){
     if(role==='p2'){
       seats.p2={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer};
       setStatus('P1 và P2 đã sẵn sàng!'); renderSeats();
-      conn.send({type:'assigned',role,roomCode}); broadcastState(); beginSecretPickPhase();
+      conn.send({type:'assigned',role,roomCode}); broadcastState(); startRoomStartCountdown();
     }else{
       spectators.push({name:msg.name,isBot:false,peerId:conn.peer}); conn.send({type:'assigned',role,roomCode}); renderSeats(); broadcastState();
       toast(`${msg.name} đã vào làm khán giả`);
@@ -908,10 +934,11 @@ function applyRemoteState(st){
   const badge=document.getElementById('room-code-badge'); if(badge)badge.textContent='Phòng: '+(st.roomCode||roomCode||'—');
   const prev=lastNetPhase;
   const previousMyRole=myRole;
-  seats.p1=st.seats?.p1||null; seats.p2=st.seats?.p2||null; spectators=st.spectators||[]; p1Move=st.p1Move||null;p2Move=st.p2Move||null;currentRoundWinner=st.currentRoundWinner||null;phase=st.phase||'idle';roomCode=st.roomCode||roomCode;lastNetPhase=phase;
+  seats.p1=st.seats?.p1||null; seats.p2=st.seats?.p2||null; spectators=st.spectators||[]; p1Move=st.p1Move||null;p2Move=st.p2Move||null;currentRoundWinner=st.currentRoundWinner||null;phase=st.phase||'idle';roomCode=st.roomCode||roomCode;roomStartCountdown=Number(st.roomStartCountdown||0);lastNetPhase=phase;
   if((previousMyRole==='p1'||previousMyRole==='p2') && !seats[previousMyRole] && phase==='idle'){ myRole='spectator'; document.getElementById('spectator-tools').style.display='none'; }
   ['p1','p2'].forEach(k=>{if(seats[k])seats[k].isMe=(myRole===k);});
   document.getElementById('rps-group').style.display=(phase==='rps'&&(myRole==='p1'||myRole==='p2'))?'flex':'none';
+  if(roomStartCountdown>0){ setStatus('🎮 Đủ 2 người chơi · trận đấu bắt đầu sau '+roomStartCountdown+' giây'); setTimer(roomStartCountdown+'s'); }
   renderSeats();
   if(phase==='secretpick'&&(myRole==='p1'||myRole==='p2')&&seats[myRole]?.secretWire===null&&!secretModalOpen)openWirePickerModal(myRole);
   if(phase==='idle'){stopTension();startAmbient();}else{stopAmbient();}
@@ -1318,7 +1345,7 @@ function confirmSeatRegistration(){
   if(!roomIsHost){sendToHost({type:'register',name,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]});setStatus('Đã gửi yêu cầu vào ghế...');return;}
   const seat=!seats.p1?'p1':(!seats.p2?'p2':null); if(!seat){toast('Hai ghế đã có người');return;}
   myRole=seat; seats[seat]={name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};
-  document.getElementById('spectator-tools').style.display='none'; renderSeats(); broadcastState(); if(seats.p1&&seats.p2)beginSecretPickPhase();
+  document.getElementById('spectator-tools').style.display='none'; renderSeats(); broadcastState(); if(seats.p1&&seats.p2)startRoomStartCountdown();
 }
 function processSeatQueue(){
   if(!roomIsHost)return;
