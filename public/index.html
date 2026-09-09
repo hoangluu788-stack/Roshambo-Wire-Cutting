@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây - Chibi Edition</title>
+  <title>Oẳn Tù Tì Cắt Dây 10 Dây - Chibi Edition</title>
   <script src="/socket.io/socket.io.js"></script>
-  <!-- SDK Đăng Nhập Google -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@700;900&display=swap');
@@ -33,69 +32,49 @@
 
     .game-card {
       width: 100%;
-      max-width: 460px;
+      max-width: 500px;
       background: var(--card-bg);
       border: 4px solid #2d324d;
       border-radius: 28px;
-      padding: 24px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 20px rgba(0, 210, 255, 0.1);
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
       text-align: center;
-      position: relative;
     }
 
     h1 {
       font-family: 'Bungee', cursive;
       color: var(--accent-yellow);
-      font-size: 26px;
-      text-shadow: 3px 3px 0px #000, 0 0 10px rgba(255, 204, 0, 0.4);
-      margin-bottom: 15px;
-      letter-spacing: 1px;
+      font-size: 22px;
+      text-shadow: 2px 2px 0px #000;
+      margin-bottom: 10px;
     }
 
-    /* KHU VỰC ĐĂNG NHẬP GOOGLE */
-    .auth-box {
-      background: rgba(255,255,255,0.05);
-      border: 2px dashed #3d446b;
-      border-radius: 20px;
-      padding: 15px;
-      margin-bottom: 15px;
+    /* TOP BAR: WALLET & GOOGLE */
+    .top-bar {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-    }
-
-    .user-profile {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      background: #25293d;
-      padding: 10px 16px;
+      background: #121420;
+      padding: 8px 15px;
       border-radius: 50px;
-      border: 2px solid var(--accent-blue);
+      margin-bottom: 15px;
+      border: 2px solid #282c44;
     }
 
-    .user-profile img {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: 2px solid var(--accent-yellow);
-    }
-
-    .user-profile span {
+    .coin-badge {
       font-weight: 900;
-      color: #fff;
+      color: var(--accent-yellow);
       font-size: 15px;
     }
 
-    /* SÂN ĐẤU NHÂN VẬT CHIBI */
+    /* ARENA CHIBI PLAYERS */
     .arena {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin: 20px 0;
+      margin: 15px 0;
       background: #121420;
-      padding: 15px;
+      padding: 12px;
       border-radius: 20px;
       border: 2px solid #282c44;
     }
@@ -107,113 +86,101 @@
       width: 42%;
     }
 
-    .avatar-wrapper {
-      position: relative;
-      width: 95px;
-      height: 95px;
-    }
-
     .chibi-img {
-      width: 100%;
-      height: 100%;
+      width: 75px;
+      height: 75px;
       border-radius: 50%;
-      border: 4px solid var(--accent-yellow);
+      border: 3px solid var(--accent-yellow);
       background: #2a2e45;
       object-fit: cover;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .chibi-img.shake {
-      animation: shake 0.4s infinite;
-    }
-
-    @keyframes shake {
-      0% { transform: translate(2px, 2px) rotate(0deg); }
-      20% { transform: translate(-3px, 0px) rotate(6deg); }
-      40% { transform: translate(2px, -2px) rotate(-6deg); }
-      60% { transform: translate(-3px, 2px) rotate(0deg); }
-      80% { transform: translate(2px, 2px) rotate(6deg); }
-      100% { transform: translate(1px, -2px) rotate(-6deg); }
     }
 
     .player-tag {
-      margin-top: 8px;
+      margin-top: 5px;
       font-weight: 900;
       font-size: 13px;
       color: var(--accent-blue);
-      max-width: 100px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    .vs-text {
-      font-family: 'Bungee', cursive;
-      font-size: 22px;
-      color: var(--accent-red);
-      text-shadow: 2px 2px 0 #000;
-    }
-
-    /* DÀN DÂY CẮT GAY CẤN */
-    .wire-group {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 20px 0;
-    }
-
-    .btn-wire {
-      flex: 1;
-      height: 110px;
-      border: none;
+    /* BETTING & MODE SELECTION */
+    .setup-panel {
+      background: rgba(255,255,255,0.05);
       border-radius: 16px;
-      cursor: pointer;
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+
+    .bet-options {
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 6px;
-      font-weight: 900;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .btn-bet {
+      background: #282c44;
+      border: 2px solid #3d446b;
       color: #fff;
-      box-shadow: 0 6px 0 rgba(0,0,0,0.5);
-      transition: transform 0.1s, box-shadow 0.1s;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      font-size: 12px;
     }
 
-    .btn-wire:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 rgba(0,0,0,0.5);
-    }
-
-    .wire-1 { background: linear-gradient(180deg, #ff4757, #c0392b); }
-    .wire-2 { background: linear-gradient(180deg, #2ed573, #27ae60); }
-    .wire-3 { background: linear-gradient(180deg, #1e90ff, #2980b9); }
-
-    .btn-main {
-      font-family: 'Bungee', cursive;
-      width: 100%;
+    .btn-bet.active {
       background: var(--accent-yellow);
       color: #000;
-      padding: 14px;
+      border-color: var(--accent-yellow);
+    }
+
+    /* WIRE GRID 10 DÂY */
+    .wire-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 15px 0;
+    }
+
+    .btn-wire-10 {
+      background: linear-gradient(180deg, #ff4757, #c0392b);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 900;
+      padding: 10px 0;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+    }
+
+    .btn-wire-10:disabled {
+      background: #444;
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-action {
+      font-family: 'Bungee', cursive;
+      width: 100%;
+      background: var(--accent-green);
+      color: #000;
+      padding: 12px;
       border: none;
       border-radius: 50px;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 6px 0 #c7a000;
-      transition: all 0.1s;
-    }
-
-    .btn-main:active {
-      transform: translateY(3px);
-      box-shadow: 0 3px 0 #c7a000;
-    }
-
-    .status-info {
-      min-height: 28px;
-      font-weight: 900;
       font-size: 15px;
-      color: #d1d8e0;
-      margin: 12px 0;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #00ab55;
+      margin-top: 8px;
+    }
+
+    .status-msg {
+      font-weight: 900;
+      font-size: 14px;
+      color: var(--accent-blue);
+      margin: 10px 0;
+      min-height: 24px;
     }
   </style>
 </head>
@@ -222,71 +189,73 @@
   <div class="game-card">
     <h1>✂️ OẮN TÙ TÌ CẮT DÂY 💣</h1>
 
-    <!-- GOOGLE LOGIN -->
-    <div class="auth-box" id="authBox">
-      <p style="font-weight:700; font-size:14px; margin-bottom:10px; color:#aaa;">Đăng nhập Google để chơi:</p>
-      <div id="g_id_onload"
-        data-client_id="624410093822-dmhrvoeg1pk0lr474vp4pu1qbet332d9.apps.googleusercontent.com"
-        data-callback="handleCredentialResponse">
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="coin-badge">💰 Xu: <span id="userCoins">5000</span></div>
+      <div id="authBox">
+        <div id="g_id_onload"
+          data-client_id="624410093822-dmhrvoeg1pk0lr474vp4pu1qbet332d9.apps.googleusercontent.com"
+          data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="icon" data-shape="circle"></div>
       </div>
-      <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="filled_blue"></div>
-    </div>
-
-    <!-- PROFILE KHI ĐÃ ĐĂNG NHẬP -->
-    <div id="userProfileBox" style="display:none; margin-bottom: 15px;">
-      <div class="user-profile">
-        <img id="googleAvatar" src="" alt="Google Avatar">
-        <span id="googleName">Player</span>
+      <div id="userProfile" style="display:none;">
+        <span id="userName" style="font-weight:900; font-size:13px;">Player</span>
       </div>
     </div>
 
-    <!-- SÂN ĐẤU CHIBI -->
+    <!-- SÂN ĐẤU -->
     <div class="arena">
       <div class="chibi-box">
-        <div class="avatar-wrapper">
-          <img id="p1Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=Player1&backgroundColor=b6e3f4" alt="Chibi P1">
-        </div>
-        <div id="p1Name" class="player-tag">Bạn</div>
+        <img id="p1Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=P1&backgroundColor=b6e3f4">
+        <div id="p1Name" class="player-tag">Bạn (Người chơi)</div>
       </div>
-
-      <div class="vs-text">VS</div>
-
+      <div style="font-family:'Bungee'; color:var(--accent-red);">VS</div>
       <div class="chibi-box">
-        <div class="avatar-wrapper">
-          <img id="p2Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Opponent&backgroundColor=ffdfbf" alt="Chibi P2">
-        </div>
-        <div id="p2Name" class="player-tag">Khách Mới</div>
+        <img id="p2Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Guest&backgroundColor=ffdfbf">
+        <div id="p2Name" class="player-tag">Khách (-10 Xu)</div>
       </div>
     </div>
 
-    <div id="statusText" class="status-info">Sẵn sàng! Bấm nút bên dưới để tìm trận.</div>
+    <!-- CHỌN CHẾ ĐỘ & MỨC CƯỢC -->
+    <div class="setup-panel" id="setupPanel">
+      <p style="font-weight:900; font-size:13px;">1. Chọn Mức Cược Xu:</p>
+      <div class="bet-options">
+        <button class="btn-bet active" onclick="selectBet(1)">1</button>
+        <button class="btn-bet" onclick="selectBet(5)">5</button>
+        <button class="btn-bet" onclick="selectBet(10)">10</button>
+        <button class="btn-bet" onclick="selectBet(50)">50</button>
+        <button class="btn-bet" onclick="selectBet(100)">100</button>
+        <button class="btn-bet" onclick="selectBet(500)">500</button>
+        <button class="btn-bet" onclick="selectBet(1000)">1000</button>
+        <button class="btn-bet" onclick="selectBet(5000)">5000</button>
+      </div>
 
-    <!-- NÚT CẮT DÂY -->
-    <div class="wire-group">
-      <button class="btn-wire wire-1" onclick="cutWire(1)">
-        <span>🔴</span>
-        <span style="font-size: 22px;">✂️</span>
-        <span>DÂY 1</span>
-      </button>
-      <button class="btn-wire wire-2" onclick="cutWire(2)">
-        <span>🟢</span>
-        <span style="font-size: 22px;">✂️</span>
-        <span>DÂY 2</span>
-      </button>
-      <button class="btn-wire wire-3" onclick="cutWire(3)">
-        <span>🔵</span>
-        <span style="font-size: 22px;">✂️</span>
-        <span>DÂY 3</span>
-      </button>
+      <p style="font-weight:900; font-size:13px; margin-top:10px;">2. Vô Phòng Với Vai Trò:</p>
+      <div style="display:flex; gap:10px; margin-top:5px;">
+        <button class="btn-action" style="background:var(--accent-yellow); box-shadow:0 4px 0 #c7a000;" onclick="joinGame('player')">🎮 Người Chơi</button>
+        <button class="btn-action" style="background:#74b9ff; box-shadow:0 4px 0 #0984e3;" onclick="joinGame('spectator')">👁️ Khán Giả (-10 Xu)</button>
+      </div>
     </div>
 
-    <button class="btn-main" onclick="findOpponent()">🎮 TÌM ĐỐI THỦ NHANH</button>
+    <div id="statusText" class="status-msg">Chọn vai trò để bắt đầu!</div>
+
+    <!-- KHU VỰC CẮT 10 DÂY -->
+    <div class="wire-grid" id="wireGrid" style="display:none;">
+      <!-- Tạo 10 nút dây -->
+    </div>
+
+    <!-- CÁC NÚT TƯƠNG TÁC -->
+    <div id="rpsButtons" style="display:none; gap:10px; margin-top:10px;">
+      <button class="btn-action" onclick="playRPS('rock')">✊ Búa</button>
+      <button class="btn-action" onclick="playRPS('paper')">✋ Bao</button>
+      <button class="btn-action" onclick="playRPS('scissors')">✌️ Kéo</button>
+    </div>
   </div>
 
   <script>
-    // --- BỘ ÂM THANH (WEB AUDIO SYNTHESIZER) ---
+    // BỘ PHÁT ÂM THANH SỐNG ĐỘNG
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
@@ -295,34 +264,150 @@
 
       if (type === 'cut') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.12);
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
         gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
       } else if (type === 'boom') {
         osc.type = 'square';
-        osc.frequency.setValueAtTime(160, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.7);
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.6);
         gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.7);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.6);
       } else if (type === 'win') {
         [523, 659, 783, 1046].forEach((f, i) => {
           setTimeout(() => {
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.value = f;
-            g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-            o.start(); o.stop(audioCtx.currentTime + 0.2);
-          }, i * 90);
+            o.frequency.value = f; g.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            o.start(); o.stop(audioCtx.currentTime + 0.18);
+          }, i * 80);
         });
       }
     }
 
-    // --- GOOGLE SIGN-IN ---
+    // BIẾN KHỞI TẠO GAME
+    let coins = 5000;
+    let selectedBet = 1;
+    let myRole = 'player';
+    let myDeadWire = null;
+    let oppDeadWire = Math.floor(Math.random() * 10) + 1; // Giả lập dây chết đối thủ
+    let isMyTurnToCut = false;
+
+    function selectBet(amount) {
+      selectedBet = amount;
+      document.querySelectorAll('.btn-bet').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.innerText) === amount);
+      });
+    }
+
+    function joinGame(role) {
+      myRole = role;
+      if (role === 'spectator') {
+        if (coins < 10) { alert("Bạn không đủ 10 xu phí làm khách!"); return; }
+        coins -= 10;
+        document.getElementById('userCoins').innerText = coins;
+        document.getElementById('statusText').innerText = "👁️ Bạn tham gia với vai trò KHÁN GIẢ (-10 Xu phí).";
+        document.getElementById('setupPanel').style.display = 'none';
+        return;
+      }
+
+      // Nếu là Người chơi: Chọn Dây Chết
+      document.getElementById('setupPanel').style.display = 'none';
+      document.getElementById('statusText').innerText = "💣 CHỌN DÂY CHẾT CỦA BẠN (Dây 1-10):";
+      renderWireGrid(true); // Hiển thị 10 dây để cài đặt
+    }
+
+    function renderWireGrid(isSelectingDeadWire) {
+      const grid = document.getElementById('wireGrid');
+      grid.style.display = 'grid';
+      grid.innerHTML = '';
+
+      for (let i = 1; i <= 10; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-wire-10';
+        btn.innerText = '✂️ Dây ' + i;
+        btn.onclick = () => {
+          if (isSelectingDeadWire) {
+            myDeadWire = i;
+            playSound('cut');
+            document.getElementById('statusText').innerText = `Dây chết của bạn là DÂY ${i}. Chuẩn bị Oẳn Tù Tì!`;
+            grid.style.display = 'none';
+            document.getElementById('rpsButtons').style.display = 'flex';
+          } else if (isMyTurnToCut) {
+            cutEnemyWire(i, btn);
+          }
+        };
+        grid.appendChild(btn);
+      }
+    }
+
+    function playRPS(myChoice) {
+      playSound('cut');
+      const choices = ['rock', 'paper', 'scissors'];
+      const oppChoice = choices[Math.floor(Math.random() * 3)];
+      
+      document.getElementById('rpsButtons').style.display = 'none';
+
+      if (myChoice === oppChoice) {
+        document.getElementById('statusText').innerText = "HÒA OẮN TÙ TÌ! Hãy ra lại...";
+        document.getElementById('rpsButtons').style.display = 'flex';
+      } else if (
+        (myChoice === 'rock' && oppChoice === 'scissors') ||
+        (myChoice === 'paper' && oppChoice === 'rock') ||
+        (myChoice === 'scissors' && oppChoice === 'paper')
+      ) {
+        playSound('win');
+        isMyTurnToCut = true;
+        document.getElementById('statusText').innerText = `🎉 THẮNG OẮN TÙ TÌ! Chọn 1 dây của đối thủ để CẮT!`;
+        renderWireGrid(false);
+      } else {
+        document.getElementById('statusText').innerText = `❌ THUA OẮN TÙ TÌ! Đối thủ đang chọn cắt dây của bạn...`;
+        setTimeout(oppCutMyWire, 2000);
+      }
+    }
+
+    function cutEnemyWire(wireNum, btnElement) {
+      playSound('cut');
+      btnElement.disabled = true;
+      btnElement.innerText = "❌ Sứt";
+
+      if (wireNum === oppDeadWire) {
+        playSound('boom');
+        coins += selectedBet;
+        document.getElementById('userCoins').innerText = coins;
+        document.getElementById('statusText').innerText = `💥 BÙM! Cắt TRÚNG DÂY CHẾT đối thủ! Thắng +${selectedBet} Xu!`;
+        document.getElementById('wireGrid').style.display = 'none';
+      } else {
+        playSound('win');
+        document.getElementById('statusText').innerText = `An toàn! Dây ${wireNum} không phải dây chết. Đổi lượt Oẳn Tù Tì!`;
+        document.getElementById('wireGrid').style.display = 'none';
+        document.getElementById('rpsButtons').style.display = 'flex';
+      }
+    }
+
+    function oppCutMyWire() {
+      const randomWire = Math.floor(Math.random() * 10) + 1;
+      playSound('cut');
+
+      if (randomWire === myDeadWire) {
+        playSound('boom');
+        coins -= selectedBet;
+        document.getElementById('userCoins').innerText = coins;
+        document.getElementById('statusText').innerText = `💥 BÙM! Đối thủ cắt trúng DÂY CHẾT (${myDeadWire}) của bạn! Bạn OUT thành KHÁN GIẢ!`;
+        
+        // CHUYỂN SANG KHÁN GIẢ
+        myRole = 'spectator';
+        document.getElementById('p1Name').innerText = "Bạn (Khán Giả)";
+        document.getElementById('p1Avatar').src = "https://api.dicebear.com/7.x/bottts/svg?seed=Explode&backgroundColor=ff4757";
+      } else {
+        document.getElementById('statusText').innerText = `Đối thủ cắt Dây ${randomWire} AN TOÀN. Đến lượt bạn Oẳn Tù Tì!`;
+        document.getElementById('rpsButtons').style.display = 'flex';
+      }
+    }
+
+    // GOOGLE LOGIN HANDLER
     function parseJwt(token) {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -331,46 +416,12 @@
 
     function handleCredentialResponse(response) {
       const userObj = parseJwt(response.credential);
-      
       document.getElementById('authBox').style.display = 'none';
-      document.getElementById('userProfileBox').style.display = 'block';
-      document.getElementById('googleName').innerText = userObj.name;
-      document.getElementById('googleAvatar').src = userObj.picture;
-
-      document.getElementById('p1Name').innerText = userObj.given_name || userObj.name;
+      document.getElementById('userProfile').style.display = 'block';
+      document.getElementById('userName').innerText = userObj.given_name || userObj.name;
+      document.getElementById('p1Name').innerText = userObj.given_name;
       document.getElementById('p1Avatar').src = `https://api.dicebear.com/7.x/bottts/svg?seed=${userObj.email}&backgroundColor=b6e3f4`;
-      
       playSound('win');
-    }
-
-    // --- LOGIC TRÒ CHƠI ---
-    function findOpponent() {
-      playSound('cut');
-      const randomSeed = Math.floor(Math.random() * 9999);
-      document.getElementById('p2Avatar').src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${randomSeed}&backgroundColor=ffdfbf`;
-      document.getElementById('p2Name').innerText = "Khách #" + Math.floor(Math.random() * 89 + 10);
-      document.getElementById('statusText').innerText = "Đã tìm thấy Khách! Chọn 1 sợi dây để cắt!";
-    }
-
-    function cutWire(index) {
-      playSound('cut');
-      const p1Avatar = document.getElementById('p1Avatar');
-      p1Avatar.classList.add('shake');
-      document.getElementById('statusText').innerText = `Đang cắt DÂY ${index}... Hồi hộp quá!`;
-
-      setTimeout(() => {
-        p1Avatar.classList.remove('shake');
-        const isExploded = Math.random() < 0.35;
-
-        if (isExploded) {
-          playSound('boom');
-          document.getElementById('statusText').innerText = `💥 BÙM! DÂY ${index} NỔ TUNG! Bạn đã thua!`;
-          p1Avatar.src = "https://api.dicebear.com/7.x/bottts/svg?seed=Explode&backgroundColor=ff4757";
-        } else {
-          playSound('win');
-          document.getElementById('statusText').innerText = `🎉 THÀNH CÔNG! Dây ${index} an toàn!`;
-        }
-      }, 1000);
     }
   </script>
 </body>
