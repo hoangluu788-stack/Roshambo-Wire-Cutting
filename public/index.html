@@ -55,6 +55,23 @@
   .toast.show{opacity:1; top:14px;}
   h1,h2,h3{margin:0; font-family:'Baloo 2',sans-serif;}
 
+  /* ---------- MUSIC ---------- */
+  .music-toggle{position:fixed;right:18px;bottom:18px;z-index:250;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:10px 15px;background:rgba(12,18,42,.92);color:#fff;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.28);backdrop-filter:blur(8px);}
+  .music-toggle.on{border-color:var(--gold);}
+  .seat-join-visible{display:block!important;width:100%;margin-top:10px;}
+  .lobby-sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+  .death-flash{position:fixed;inset:0;background:rgba(255,35,25,.0);pointer-events:none;z-index:240;}
+  .death-flash.hit{animation:deathFlash .62s ease-out;}
+  @keyframes deathFlash{0%{background:rgba(255,40,20,.0)}12%{background:rgba(255,40,20,.58)}32%{background:rgba(255,70,20,.18)}100%{background:rgba(255,0,0,0)}}
+  .danger-hit{animation:dangerHit .42s ease-in-out 2;}
+  .death-spark{position:fixed;left:50%;top:50%;z-index:245;font-size:22px;color:#ffd45a;pointer-events:none;animation:deathSpark .7s ease-out forwards;--dx:0px;--dy:0px;--rot:0deg;}
+  @keyframes deathSpark{0%{transform:translate(-50%,-50%) scale(.4) rotate(0);opacity:0}18%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.3) rotate(var(--rot));opacity:0}}
+  @keyframes dangerHit{0%,100%{transform:translate(0,0) scale(1)}20%{transform:translate(-6px,2px) scale(1.01)}40%{transform:translate(5px,-3px) scale(1.02)}60%{transform:translate(-4px,2px) scale(1.01)}80%{transform:translate(3px,-1px) scale(1)}}
+  .wire.dead-reveal{animation:deadWireReveal .85s ease-out infinite alternate, shake .22s linear infinite !important; box-shadow:0 0 0 3px rgba(255,255,255,.18),0 0 28px rgba(255,60,25,.9);}
+  @keyframes deadWireReveal{from{filter:brightness(1);transform:scale(1)}to{filter:brightness(1.45);transform:scale(1.05)}}
+  .result-dramatic{animation:resultDramatic .8s ease-out;}
+  @keyframes resultDramatic{0%{transform:scale(.78);opacity:.3;filter:blur(5px)}55%{transform:scale(1.12);opacity:1;filter:blur(0)}100%{transform:scale(1);opacity:1}}
+
   /* ---------- HOME ---------- */
   #screen-home{padding:16px 20px;}
   .home-top{display:flex; justify-content:space-between; align-items:center;}
@@ -321,6 +338,8 @@
       <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="registerForSeat()">🎮 Đăng ký vào ghế</button>
     </div>
     <div class="queue-strip" id="queue-strip"></div>
+    <div class="seat-hint" id="seat-hint" style="text-align:center;margin-top:7px;font-size:.78rem;color:var(--ink-dim);">💡 Khán giả có thể đăng ký vào ghế trống bằng nút “Đăng ký vào ghế”.</div>
+    
   </div>
 
 </div>
@@ -328,6 +347,9 @@
 <div class="toast" id="toast"></div>
 
 <!-- ========== MODAL LAYER ========== -->
+<button id="music-toggle" class="music-toggle on" onclick="toggleMusic()">🔊 Nhạc: Bật</button>
+<div id="death-flash" class="death-flash"></div>
+
 <div id="modal-layer"></div>
 
 <script>
@@ -338,28 +360,100 @@ let audioCtx = null;
 function ac(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
 
 let ambientNodes = null;
+let lobbyBirdTimer = null;
+let musicOn = true;
+let musicTimer = null;
+let musicStep = 0;
+const lobbyNotes = [196.00,220.00,246.94,293.66,261.63,246.94,220.00,329.63];
+
 function startAmbient(){
   stopAmbient();
   const c = ac();
-  const now = c.currentTime;
-  const o1 = c.createOscillator(), o2 = c.createOscillator();
-  const g = c.createGain();
-  o1.type='sine'; o2.type='sine';
-  o1.frequency.value = 196; o2.frequency.value = 246.94; // soft open fifth-ish pad
-  g.gain.value = 0;
-  o1.connect(g); o2.connect(g); g.connect(c.destination);
-  g.gain.linearRampToValueAtTime(0.028, now+1.2);
-  o1.start(); o2.start();
-  ambientNodes = {o1,o2,g};
+  const master = c.createGain();
+  master.gain.setValueAtTime(0.0001,c.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.055,c.currentTime+0.9);
+  master.connect(c.destination);
+  ambientNodes = {master};
+  musicStep = 0;
+  playLobbyMusicStep();
+  musicTimer = setInterval(playLobbyMusicStep, 620);
+  startLobbyBirds();
+}
+
+function playLobbyMusicStep(){
+  if(!ambientNodes || !musicOn) return;
+  const c=ac(), now=c.currentTime;
+  const root=lobbyNotes[musicStep % lobbyNotes.length];
+  const osc=c.createOscillator(), g=c.createGain();
+  osc.type='triangle';
+  osc.frequency.setValueAtTime(root,now);
+  g.gain.setValueAtTime(0.0001,now);
+  g.gain.linearRampToValueAtTime(0.10,now+0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+0.52);
+  osc.connect(g); g.connect(ambientNodes.master);
+  osc.start(now); osc.stop(now+0.55);
+  if(musicStep%2===0){
+    const hi=c.createOscillator(), hg=c.createGain();
+    hi.type='sine'; hi.frequency.value=root*2;
+    hg.gain.setValueAtTime(0.0001,now);
+    hg.gain.linearRampToValueAtTime(0.028,now+0.06);
+    hg.gain.exponentialRampToValueAtTime(0.0001,now+0.4);
+    hi.connect(hg); hg.connect(ambientNodes.master); hi.start(now); hi.stop(now+0.43);
+  }
+  musicStep++;
+}
+
+function startLobbyBirds(){
+  stopLobbyBirds();
+  scheduleBirdChirp();
+}
+function scheduleBirdChirp(){
+  if(!musicOn || !ambientNodes) return;
+  const delay=2500+Math.random()*4200;
+  lobbyBirdTimer=setTimeout(()=>{
+    if(ambientNodes && musicOn) playBirdChirp();
+    scheduleBirdChirp();
+  },delay);
+}
+function playBirdChirp(){
+  const c=ac(), now=c.currentTime;
+  const base=1500+Math.random()*900;
+  const chirps=2+Math.floor(Math.random()*3);
+  for(let i=0;i<chirps;i++){
+    const o=c.createOscillator(), g=c.createGain();
+    o.type='sine';
+    const t=now+i*0.11;
+    o.frequency.setValueAtTime(base*(0.85+Math.random()*0.08),t);
+    o.frequency.exponentialRampToValueAtTime(base*(1.25+Math.random()*0.18),t+0.07);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.05,t+0.018);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.11);
+    o.connect(g);
+    g.connect(ambientNodes?.master || c.destination);
+    o.start(t); o.stop(t+0.13);
+  }
+}
+function stopLobbyBirds(){
+  if(lobbyBirdTimer){clearTimeout(lobbyBirdTimer); lobbyBirdTimer=null;}
 }
 function stopAmbient(){
+  stopLobbyBirds();
+  if(musicTimer){ clearInterval(musicTimer); musicTimer=null; }
   if(!ambientNodes) return;
-  const c = ac(); const now = c.currentTime;
+  const c=ac(), now=c.currentTime, old=ambientNodes;
   try{
-    ambientNodes.g.gain.linearRampToValueAtTime(0, now+0.5);
-    ambientNodes.o1.stop(now+0.55); ambientNodes.o2.stop(now+0.55);
+    old.master.gain.cancelScheduledValues(now);
+    old.master.gain.setValueAtTime(Math.max(old.master.gain.value,0.0001),now);
+    old.master.gain.exponentialRampToValueAtTime(0.0001,now+0.35);
   }catch(e){}
-  ambientNodes = null;
+  ambientNodes=null;
+}
+function toggleMusic(){
+  musicOn=!musicOn;
+  const b=document.getElementById('music-toggle');
+  if(b){ b.textContent=musicOn?'🔊 Nhạc: Bật':'🔇 Nhạc: Tắt'; b.classList.toggle('on',musicOn); }
+  if(musicOn){ startAmbient(); playClick(); }
+  else stopAmbient();
 }
 
 let tensionNodes = null;
@@ -545,22 +639,34 @@ function openModal(html){ document.getElementById('modal-layer').innerHTML = `<d
    ========================================================= */
 function openOnlineRoleModal(){
   playClick();
-  if(!googleUser){ openGoogleLogin(); return; }
+  startAmbient();
   openModal(`
-    <div class="modal-card">
-      <h2>CHƠI ONLINE</h2>
-      <div class="modal-sub">Chọn vai trò của bạn trong trận đấu</div>
-      <div class="role-opt" onclick="openPublicNameModal()">
+    <div class="modal-card role-choice-card">
+      <h2>CHỌN VAI TRÒ</h2>
+      <div class="modal-sub">Chọn vai trò trước khi vào phòng</div>
+      <div class="role-opt" onclick="selectOnlineRole('player')">
         <div class="ic">🎮</div>
-        <div class="txt"><b>Người chơi</b><span>Bắt buộc công khai tên trước khi vào ghế. Chỉ người thật mới được làm người chơi.</span></div>
+        <div class="txt"><b>Người chơi</b><span>Đăng nhập Google và công khai tên trước khi ngồi P1/P2.</span></div>
       </div>
-      <div class="role-opt" onclick="closeModal(); openSpectateBrowser()">
+      <div class="role-opt" onclick="selectOnlineRole('spectator')">
         <div class="ic">👁️</div>
-        <div class="txt"><b>Khán giả</b><span>Chỉ xem và đặt chip vào người bạn tin sẽ thắng. Tiền thắng x3, không thể thu hồi chip.</span></div>
+        <div class="txt"><b>Khán giả</b><span>Chỉ xem trận đấu và theo dõi diễn biến.</span></div>
       </div>
     </div>
   `);
 }
+function selectOnlineRole(role){
+  playClick();
+  if(role==='player'){
+    closeModal();
+    if(!googleUser){ openGoogleLogin(); return; }
+    openPublicNameModal('match');
+    return;
+  }
+  closeModal();
+  openSpectateBrowser();
+}
+
 
 /* =========================================================
    MATCHMAKING (player role) — fake open rooms + random match
@@ -627,6 +733,7 @@ function joinRoomAsPlayer(hostName){
   setStatus(`Đang chờ ${hostName} tham gia...`);
   setTimer('--');
   document.getElementById('rps-group').style.display='none';
+  startAmbient();
 }
 function createHumanWaitingRoom(){
   if(!requireGoogleLogin()) return;
@@ -640,26 +747,28 @@ function createHumanWaitingRoom(){
   setStatus('Đang chờ người chơi thật vào ghế P2...');
   setTimer('--');
   document.getElementById('rps-group').style.display='none';
+  startAmbient();
 }
 /* =========================================================
    SPECTATE BROWSER
    ========================================================= */
 function openSpectateBrowser(){
-  if(!requireGoogleLogin()) return;
+  startAmbient();
   openModal(`
     <div class="modal-card">
-      <h2>XEM & CƯỢC</h2>
-      <div class="modal-sub">Chọn một trận đang diễn ra để theo dõi và đặt cược</div>
+      <h2>KHÁN GIẢ</h2>
+      <div class="modal-sub">Bạn sẽ vào phòng với quyền theo dõi trận đấu.</div>
       <div class="room-list">
         <div class="room-row">
-          <div class="rinfo"><b>${randomName()} 🆚 ${randomName()}</b><span class="rtag">Đang chọn dây chết</span></div>
-          <button class="btn btn-green" style="padding:8px 14px;font-size:.78rem;" onclick="closeModal(); joinAsSpectator()">Xem</button>
+          <div class="rinfo"><b>Trận đang chờ người chơi</b><span class="rtag">Xem diễn biến trực tiếp</span></div>
+          <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" onclick="closeModal(); joinAsSpectator()">Vào xem</button>
         </div>
       </div>
-      <button class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;" onclick="closeModal(); joinAsSpectator()">Ghép vào trận bất kỳ</button>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;" onclick="closeModal()">Huỷ</button>
     </div>
   `);
 }
+
 function joinAsSpectator(){
   if(!requireGoogleLogin()) return;
   startNewSession();
@@ -667,7 +776,7 @@ function joinAsSpectator(){
   // Khán giả chỉ vào xem/cược. Không tự tạo bot trong ghế người chơi.
   seats.p1=null; seats.p2=null;
   showScreen('screen-arena');
-  document.getElementById('spectator-tools').style.display='flex';
+  document.getElementById('spectator-tools').style.display='none';
   renderSeats();
   fillBotSpectators();
   setStatus('Đang tìm trận có 2 người chơi thật...');
@@ -675,6 +784,7 @@ function joinAsSpectator(){
   document.getElementById('rps-group').style.display='none';
   document.getElementById('take-seat-btn').style.display='none';
   updateQueueStrip();
+  startAmbient();
 }
 /* =========================================================
    FRIEND ROOM (create / join by code)
@@ -797,7 +907,7 @@ function renderSeats(){
     }
     document.getElementById(k+'-lock').textContent = s ? (s.secretWire!==null ? '🔒 đã chọn dây chết' : '⏳ đang chọn...') : '';
   });
-  document.getElementById('take-seat-btn').style.display = (myRole==='spectator' && (!seats.p1 || !seats.p2)) ? 'inline-block' : 'none';
+  const seatBtn=document.getElementById('take-seat-btn'); seatBtn.style.display = (myRole==='spectator' && (!seats.p1 || !seats.p2)) ? 'inline-block' : 'none'; seatBtn.classList.toggle('seat-join-visible', myRole==='spectator' && (!seats.p1 || !seats.p2));
 }
 function updatePools(){
   document.getElementById('p1-pool').textContent=`Tổng chip P1: ${predictBetP1} xu`;
@@ -865,6 +975,7 @@ function proceedIfSecretsReady(){
    RPS PHASE (10s)
    ========================================================= */
 function startRPSPhase(){
+  stopAmbient();
   phase='rps';
   p1Move=null; p2Move=null;
   document.getElementById('p1-move').textContent='❓';
@@ -913,12 +1024,28 @@ function setPlayerAction(seatKey,text,hot=false){
 }
 function playResultReveal(){
   const c=ac(), now=c.currentTime;
-  [523,659,784,1046].forEach((f,i)=>{
-    const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f;
-    const t=now+i*.11; g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.12,t+.035); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.45);
+  // dramatic 4-hit build + impact, entirely generated with Web Audio
+  [196,233,277,330].forEach((f,i)=>{
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=i<3?'triangle':'sawtooth';
+    const t=now+i*0.16;
+    o.frequency.setValueAtTime(f,t);
+    o.frequency.exponentialRampToValueAtTime(f*1.08,t+0.12);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.13,t+0.025);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.30);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.34);
   });
+  const bass=c.createOscillator(), bg=c.createGain();
+  bass.type='sawtooth'; bass.frequency.setValueAtTime(90,now+0.56); bass.frequency.exponentialRampToValueAtTime(42,now+1.15);
+  bg.gain.setValueAtTime(0.0001,now+0.56); bg.gain.linearRampToValueAtTime(0.22,now+0.60); bg.gain.exponentialRampToValueAtTime(0.0001,now+1.18);
+  bass.connect(bg); bg.connect(c.destination); bass.start(now+0.56); bass.stop(now+1.2);
+  const pulse=c.createOscillator(), pg=c.createGain();
+  pulse.type='square'; pulse.frequency.value=760;
+  pg.gain.setValueAtTime(0.0001,now+0.72); pg.gain.linearRampToValueAtTime(0.10,now+0.75); pg.gain.exponentialRampToValueAtTime(0.0001,now+0.95);
+  pulse.connect(pg); pg.connect(c.destination); pulse.start(now+0.72); pulse.stop(now+0.97);
 }
+
 
 function revealRPS(){
   phase='reveal';
@@ -1015,7 +1142,7 @@ function cutWire(seatKey, wireNum){
   const isDead = s.secretWire === wireNum;
 
   if(isDead){
-    playClimaxBoom();
+    triggerDeathEffect(seatKey, wireNum);
     document.getElementById('cut-character')?.classList.remove('show');
     renderDeadWireFlash(seatKey, wireNum);
     setTimeout(()=>{ eliminatePlayer(seatKey); }, 900);
@@ -1027,6 +1154,28 @@ function cutWire(seatKey, wireNum){
     setTimeout(()=>{ p1Move=null; p2Move=null; startRPSPhase(); }, 700);
   }
 }
+function triggerDeathEffect(seatKey, wireNum){
+  document.body.classList.remove('danger-hit');
+  void document.body.offsetWidth;
+  document.body.classList.add('danger-hit');
+  const flash=document.getElementById('death-flash');
+  if(flash){ flash.classList.remove('hit'); void flash.offsetWidth; flash.classList.add('hit'); }
+  const grid=document.getElementById(seatKey+'-wires');
+  if(grid){ grid.classList.add('danger-hit'); setTimeout(()=>grid.classList.remove('danger-hit'),900); }
+  // quick burst of sparks around the middle
+  for(let i=0;i<10;i++){
+    const p=document.createElement('span');
+    p.className='death-spark';
+    p.style.setProperty('--dx',(Math.random()*180-90)+'px');
+    p.style.setProperty('--dy',(Math.random()*130-80)+'px');
+    p.style.setProperty('--rot',(Math.random()*220-110)+'deg');
+    p.textContent=['✦','✧','•'][i%3];
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),700);
+  }
+  playClimaxBoom();
+}
+
 function renderDeadWireFlash(seatKey, wireNum){
   phase='resolving';
   setStatus(`💥 ${seatKey.toUpperCase()} cắt trúng dây chết!`);
@@ -1063,7 +1212,7 @@ function eliminatePlayer(loserSeatKey){
 
   if(loser.isMe){
     myRole='spectator';
-    document.getElementById('spectator-tools').style.display='flex';
+    document.getElementById('spectator-tools').style.display='none';
   }
   spectators.push({name:loser.name,isBot:false,wasPlayer:true});
   seats[loserSeatKey]=null;
