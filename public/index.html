@@ -219,8 +219,10 @@
   .result-flash{animation:resultFlash .75s ease-in-out 2;}
   @keyframes resultFlash{50%{filter:brightness(1.6);transform:scale(1.03)}}
   .public-name-note{font-size:.7rem;color:var(--gold);text-align:center;margin-top:5px;}
+.room-code-badge{margin:6px auto 0;text-align:center;font-weight:800;color:var(--gold);font-size:.78rem;letter-spacing:.04em;}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 
@@ -236,7 +238,7 @@
           <div class="home-name" id="home-name" onclick="openPublicNameModal('profile')">Chưa đăng nhập</div>
           <div class="google-status" id="google-status">Đăng nhập Google để trở thành người chơi</div>
           <div class="stat-row">
-            <div class="stat-chip">🪙 <b id="home-coins">100000</b></div>
+            <div class="stat-chip">⭐ <b id="home-coins">100000</b></div>
             <div class="stat-chip">💎 <b id="home-gems">250</b></div>
           </div>
         </div>
@@ -284,7 +286,7 @@
   <div class="screen" id="screen-arena">
     <div class="backbtn" onclick="leaveArena()">←</div>
     <div class="arena-top">
-      <div class="pill">🪙 <b id="arena-coins">100000</b></div>
+      <div class="pill">⭐ <b id="arena-coins">100000</b></div>
       <div class="status-line" id="game-status">Đang chờ người chơi...</div>
       <div class="timer-badge" id="timer">--</div>
     </div>
@@ -323,21 +325,11 @@
         <button class="rps-btn" onclick="chooseRPS('scissors')">✌️</button>
       </div>
 
-      <div class="bet-panel" id="spectator-tools" style="display:none;">
-        <span class="lbl">CHIP:</span>
-        <button class="chip c100" data-chip="100" onclick="selectChip(100)">100</button>
-        <button class="chip c500" data-chip="500" onclick="selectChip(500)">500</button>
-        <button class="chip c1000" data-chip="1000" onclick="selectChip(1000)">1K</button>
-        <button class="chip c5000" data-chip="5000" onclick="selectChip(5000)">5K</button>
-        <button class="bet-target" id="target-p1" onclick="selectBetTarget('P1')">🔴 P1</button>
-        <button class="bet-target" id="target-p2" onclick="selectBetTarget('P2')">🔵 P2</button>
-        <button class="btn btn-green bet-btn" onclick="placeMatchBet()">ĐẶT CHIP ×3</button>
-        <span class="pending-badge" id="pending-payout">💰 Chưa có tiền chờ trả</span>
-      </div>
+      <div class="bet-panel" id="spectator-tools" style="display:none;">👁️ Chế độ khán giả: chỉ xem trận đấu</div>
 
       <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="registerForSeat()">🎮 Đăng ký vào ghế</button>
     </div>
-    <div class="queue-strip" id="queue-strip"></div>
+    <div class="queue-strip" id="queue-strip"></div><div class="room-code-badge" id="room-code-badge">Phòng: —</div>
     <div class="seat-hint" id="seat-hint" style="text-align:center;margin-top:7px;font-size:.78rem;color:var(--ink-dim);">💡 Khán giả có thể đăng ký vào ghế trống bằng nút “Đăng ký vào ghế”.</div>
     
   </div>
@@ -701,53 +693,32 @@ function confirmPublicPlayerName(){
   renderHomeProfile();
   if(afterPublicNameAction==='friend') openFriendModal();
   else if(afterPublicNameAction==='profile'){ toast('Đã lưu tên công khai'); }
-  else openMatchmaking(name);
+  else openFriendModal();
   afterPublicNameAction=null;
 }
 let publicPlayerName='';
 let afterPublicNameAction=null;
-function openMatchmaking(playerName=''){
-  if(!requireGoogleLogin()) return;
-  startAmbient();
-  if(playerName) publicPlayerName=playerName;
-  if(!publicPlayerName){ openPublicNameModal('match'); return; }
-  openModal(`
-    <div class="modal-card">
-      <h2>SẢNH CHỜ NGƯỜI CHƠI</h2>
-      <div class="modal-sub">Tên <b>${publicPlayerName}</b> sẽ được công khai trên bàn. Máy không bao giờ được ngồi P1/P2.</div>
-      <div class="queue-box">🟢 Google: đã xác thực · 🎮 Người chơi: chỉ tài khoản thật · 🤖 Máy: không được phép làm người chơi</div>
-      <div class="spinner"></div>
-      <div id="match-wait-text" class="modal-sub">Đang tìm một người chơi thật khác…</div>
-      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="closeModal(); createHumanWaitingRoom()">Tạo sảnh chờ</button>
-      <button class="btn btn-ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="closeModal()">Huỷ</button>
-    </div>`);
-}
+function openMatchmaking(playerName=''){ if(playerName) publicPlayerName=playerName; openFriendModal(); }
 function joinRoomAsPlayer(hostName){
   if(!requireGoogleLogin()) return;
-  startNewSession();
-  myRole='p1';
-  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍🚀'};
-  seats.p2=null;
-  showScreen('screen-arena');
-  renderSeats();
-  setStatus(`Đang chờ ${hostName} tham gia...`);
-  setTimer('--');
-  document.getElementById('rps-group').style.display='none';
-  startAmbient();
+  const code=window.pendingRoomCode || '';
+  if(code) joinOnlineRoom(code,'player');
 }
-function createHumanWaitingRoom(){
+function createHumanWaitingRoom(code){
   if(!requireGoogleLogin()) return;
   if(!publicPlayerName){ openPublicNameModal('match'); return; }
+  code=String(code||window.pendingRoomCode||'');
+  if(!/^\d{4}$/.test(code)){toast('Không có mã phòng hợp lệ');return;}
   startNewSession();
   myRole='p1';
-  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍🚀'};
+  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍💻',connected:true};
   seats.p2=null;
   showScreen('screen-arena');
-  renderSeats();
-  setStatus('Đang chờ người chơi thật vào ghế P2...');
-  setTimer('--');
   document.getElementById('rps-group').style.display='none';
+  setStatus(`Phòng ${code} · đang chờ P2...`);
+  setTimer('--');
   startAmbient();
+  startPeerHost(code);
 }
 /* =========================================================
    SPECTATE BROWSER
@@ -757,48 +728,31 @@ function openSpectateBrowser(){
   openModal(`
     <div class="modal-card">
       <h2>KHÁN GIẢ</h2>
-      <div class="modal-sub">Bạn sẽ vào phòng với quyền theo dõi trận đấu.</div>
-      <div class="room-list">
-        <div class="room-row">
-          <div class="rinfo"><b>Trận đang chờ người chơi</b><span class="rtag">Xem diễn biến trực tiếp</span></div>
-          <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" onclick="closeModal(); joinAsSpectator()">Vào xem</button>
-        </div>
-      </div>
-      <button class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;" onclick="closeModal()">Huỷ</button>
+      <div class="modal-sub">Nhập mã phòng 4 chữ số để xem trận đang diễn ra.</div>
+      <input class="code-input" id="spectate-code-input" maxlength="4" placeholder="0000" inputmode="numeric">
+      <button class="btn btn-blue" style="width:100%;padding:12px;" onclick="submitSpectateCode()">Vào phòng</button>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="closeModal()">Huỷ</button>
     </div>
   `);
 }
-
-function joinAsSpectator(){
-  if(!requireGoogleLogin()) return;
-  startNewSession();
-  myRole='spectator';
-  // Khán giả chỉ vào xem/cược. Không tự tạo bot trong ghế người chơi.
-  seats.p1=null; seats.p2=null;
-  showScreen('screen-arena');
-  document.getElementById('spectator-tools').style.display='none';
-  renderSeats();
-  fillBotSpectators();
-  setStatus('Đang tìm trận có 2 người chơi thật...');
-  setTimer('--');
-  document.getElementById('rps-group').style.display='none';
-  document.getElementById('take-seat-btn').style.display='none';
-  updateQueueStrip();
-  startAmbient();
+function submitSpectateCode(){
+  const v=(document.getElementById('spectate-code-input')?.value||'').trim();
+  if(!/^\d{4}$/.test(v)){ toast('Mã phòng gồm đúng 4 chữ số'); return; }
+  closeModal();
+  joinOnlineRoom(v,'spectator');
 }
+function joinAsSpectator(){ openSpectateBrowser(); }
+
 /* =========================================================
    FRIEND ROOM (create / join by code)
    ========================================================= */
 function openFriendModal(){
   playClick();
   if(!requireGoogleLogin()) return;
-  if(!publicPlayerName){
-    openPublicNameModal('friend');
-    return;
-  }
+  if(!publicPlayerName){ openPublicNameModal('friend'); return; }
   openModal(`
     <div class="modal-card">
-      <h2>CHƠI VỚI BẠN</h2>
+      <h2>PHÒNG ONLINE</h2>
       <div class="tabbar">
         <div class="tab active" id="tab-create" onclick="switchFriendTab('create')">Tạo phòng</div>
         <div class="tab" id="tab-join" onclick="switchFriendTab('join')">Nhập mã</div>
@@ -811,51 +765,174 @@ function openFriendModal(){
 function switchFriendTab(tab){
   document.getElementById('tab-create').classList.toggle('active', tab==='create');
   document.getElementById('tab-join').classList.toggle('active', tab==='join');
-  const body = document.getElementById('friend-tab-body');
+  const body=document.getElementById('friend-tab-body');
   if(tab==='create'){
-    const code = (1000+Math.floor(Math.random()*9000)).toString();
-    body.innerHTML = `
-      <div class="modal-sub">Gửi mã này cho bạn bè để họ tham gia phòng của bạn</div>
+    const code=String(1000+Math.floor(Math.random()*9000));
+    window.pendingRoomCode=code;
+    body.innerHTML=`
+      <div class="modal-sub">Gửi mã này cho người bạn muốn chơi cùng.</div>
       <div class="code-display">${code}</div>
-      <div id="create-wait-msg" class="modal-sub">Đang chờ bạn bè tham gia…</div>
-      <div class="spinner"></div>
-      <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="closeModal()">Huỷ</button>
+      <div class="queue-box">🎮 Bạn sẽ là P1 · người nhập mã sau sẽ vào P2 · người thứ 3 có thể vào làm khán giả.</div>
+      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="closeModal(); createHumanWaitingRoom('${code}')">Tạo phòng & chờ P2</button>
     `;
-    clearTimeout(window._friendJoinTimeout);
-    startAmbient();
-    body.innerHTML += `<button class="btn btn-cta" style="width:100%;padding:11px;" onclick="closeModal(); createHumanWaitingRoom()">Vào sảnh chờ</button>`;
-  } else {
-    body.innerHTML = `
-      <div class="modal-sub">Nhập mã phòng 4 chữ số bạn nhận được</div>
+  }else{
+    body.innerHTML=`
+      <div class="modal-sub">Nhập mã phòng 4 chữ số do P1 gửi.</div>
       <input class="code-input" id="join-code-input" maxlength="4" placeholder="0000" inputmode="numeric">
-      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="submitJoinCode()">Vào phòng</button>
+      <button class="btn btn-blue" style="width:100%;padding:12px;" onclick="submitJoinCode()">Vào phòng</button>
     `;
   }
 }
 function submitJoinCode(){
   if(!requireGoogleLogin()) return;
-  const v = document.getElementById('join-code-input').value.trim();
-  if(v.length!==4 || isNaN(v)){ toast('Mã phòng gồm 4 chữ số'); return; }
+  const v=(document.getElementById('join-code-input')?.value||'').trim();
+  if(!/^\d{4}$/.test(v)){ toast('Mã phòng gồm đúng 4 chữ số'); return; }
   closeModal();
-  startNewSession();
-  myRole='p1';
-  seats.p1 = { name:publicPlayerName, isBot:false, secretWire:null, wiresCut:[], isMe:true };
-  seats.p2 = null;
-  showScreen('screen-arena');
-  renderSeats();
-  toast(`Đã vào phòng ${v} — đang chờ người chơi thật`);
-  document.getElementById('rps-group').style.display='none';
-  fillBotSpectators();
+  joinOnlineRoom(v,'player');
 }
+
+/* =========================================================
+   REALTIME ROOM NETWORK (PeerJS)
+   ========================================================= */
+let peer=null;
+let peerConnections=[];
+let roomCode='';
+let roomIsHost=false;
+let roomReady=false;
+let roomPlayerName='';
+let lastNetPhase='';
+let secretModalOpen=false;
+
+function closePeerRoom(){
+  roomReady=false; roomIsHost=false; roomCode=''; roomPlayerName=''; lastNetPhase=''; secretModalOpen=false;
+  peerConnections.forEach(c=>{try{c.close()}catch(e){}}); peerConnections=[];
+  if(peer){try{peer.destroy()}catch(e){}}
+  peer=null;
+}
+function stateForConn(conn){
+  const st={
+    seats:{p1:seats.p1?{...seats.p1}:null,p2:seats.p2?{...seats.p2}:null},
+    spectators:spectators.map(x=>({...x})), p1Move,p2Move,currentRoundWinner,phase,roomCode
+  };
+  ['p1','p2'].forEach(k=>{ if(st.seats[k] && conn?._roomRole!==k) st.seats[k].secretWire=null; });
+  return st;
+}
+function broadcastState(){
+  const badge=document.getElementById('room-code-badge'); if(badge) badge.textContent='Phòng: '+(roomCode||'—');
+  if(!roomIsHost) return;
+  peerConnections=peerConnections.filter(c=>c&&c.open);
+  peerConnections.forEach(c=>{try{c.send({type:'state',state:stateForConn(c)})}catch(e){}});
+}
+function broadcastEvent(event){
+  if(!roomIsHost) return;
+  peerConnections=peerConnections.filter(c=>c&&c.open);
+  peerConnections.forEach(c=>{try{c.send({type:'event',event})}catch(e){}});
+}
+function sendToHost(msg){
+  if(roomIsHost) return false;
+  const c=peerConnections[0];
+  if(c?.open){try{c.send(msg);return true;}catch(e){}}
+  toast('Kết nối phòng chưa sẵn sàng'); return false;
+}
+function startPeerHost(code){
+  closePeerRoom(); roomCode=code; roomIsHost=true; roomReady=false;
+  peer=new Peer(code,{debug:1});
+  peer.on('open',()=>{roomReady=true; setStatus(`Phòng ${roomCode} · đang chờ P2...`); broadcastState();});
+  peer.on('connection',conn=>{
+    peerConnections.push(conn);
+    conn.on('open',()=>{conn.on('data',msg=>handleNetMessage(conn,msg)); conn.send({type:'helloAck',roomCode});});
+    conn.on('close',()=>{
+      if(conn._roomRole==='p2' && seats.p2?.peerId===conn.peer){
+        seats.p2=null; p2Move=null; phase='idle'; document.getElementById('rps-group').style.display='none';
+        setStatus('P2 đã rời phòng · đang chờ người chơi khác...'); renderSeats(); broadcastState();
+      }
+    });
+  });
+  peer.on('error',err=>toast(err.type==='unavailable-id'?'Mã phòng đang được sử dụng. Hãy tạo mã khác.':'Lỗi máy chủ phòng: '+(err.type||'không xác định')));
+}
+function joinOnlineRoom(code,role){
+  if(role==='player' && !requireGoogleLogin()) return;
+  startNewSession(); roomCode=code; roomIsHost=false; roomReady=false;
+  myRole=role==='player'?'pendingPlayer':'spectator';
+  showScreen('screen-arena'); document.getElementById('spectator-tools').style.display='none';
+  setStatus(`Đang kết nối phòng ${code}...`); setTimer('--');
+  peer=new Peer(undefined,{debug:1});
+  peer.on('open',()=>{
+    const conn=peer.connect(code,{reliable:true});
+    conn.on('open',()=>{peerConnections=[conn];roomReady=true;conn._roomRole=role==='player'?'pendingPlayer':'spectator';conn.send({type:'join',role,name:publicPlayerName||googleUser?.name||'Khán giả',avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]});});
+    conn.on('data',msg=>handleNetMessage(conn,msg));
+    conn.on('close',()=>{toast('Mất kết nối phòng.');setStatus('Mất kết nối phòng.');});
+  });
+  peer.on('error',err=>toast(err.type==='peer-unavailable'?'Không tìm thấy phòng '+code:'Lỗi kết nối phòng'));
+}
+function handleNetMessage(conn,msg){
+  if(!msg) return;
+  if(roomIsHost && msg.type==='join'){
+    const role=msg.role==='player'&&!seats.p2?'p2':'spectator'; conn._roomRole=role;
+    if(role==='p2'){
+      seats.p2={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer};
+      setStatus('P1 và P2 đã sẵn sàng!'); renderSeats();
+      conn.send({type:'assigned',role,roomCode}); broadcastState(); beginSecretPickPhase();
+    }else{
+      spectators.push({name:msg.name,isBot:false,peerId:conn.peer}); conn.send({type:'assigned',role,roomCode}); renderSeats(); broadcastState();
+      toast(`${msg.name} đã vào làm khán giả`);
+    }
+    return;
+  }
+  if(roomIsHost && msg.type==='secret'){
+    const seat=msg.seat; if((seat==='p1'||seat==='p2')&&seats[seat]&&(seat==='p1'?conn._roomRole==='p1':seats.p2.peerId===conn.peer)){
+      seats[seat].secretWire=Number(msg.wire); renderSeats(); broadcastState(); proceedIfSecretsReady();
+    }
+    return;
+  }
+  if(roomIsHost && msg.type==='rps'){
+    const seat=msg.seat; if((seat==='p1'||seat==='p2')&&seats[seat]&&seats[seat].peerId===conn.peer&&phase==='rps'){
+      if(seat==='p1')p1Move=msg.move;else p2Move=msg.move; broadcastState(); if(p1Move&&p2Move) revealRPS();
+    }
+    return;
+  }
+  if(roomIsHost && msg.type==='cut'){
+    const winner=currentRoundWinner==='P1'?'p1':'p2'; if(phase==='cut'&&seats[winner]?.peerId===conn.peer) cutWire(msg.seat,Number(msg.wire));
+    return;
+  }
+  if(roomIsHost && msg.type==='register'){
+    const seat=!seats.p1?'p1':(!seats.p2?'p2':null); if(seat){ conn._roomRole=seat; seats[seat]={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer}; broadcastState(); if(seats.p1&&seats.p2)beginSecretPickPhase(); }
+    return;
+  }
+  if(msg.type==='assigned'){ myRole=msg.role; roomReady=true; renderSeats(); return; }
+  if(msg.type==='state') applyRemoteState(msg.state);
+  if(msg.type==='event') handleRemoteEvent(msg.event);
+}
+function applyRemoteState(st){
+  if(roomIsHost||!st)return;
+  const badge=document.getElementById('room-code-badge'); if(badge)badge.textContent='Phòng: '+(st.roomCode||roomCode||'—');
+  const prev=lastNetPhase;
+  const previousMyRole=myRole;
+  seats.p1=st.seats?.p1||null; seats.p2=st.seats?.p2||null; spectators=st.spectators||[]; p1Move=st.p1Move||null;p2Move=st.p2Move||null;currentRoundWinner=st.currentRoundWinner||null;phase=st.phase||'idle';roomCode=st.roomCode||roomCode;lastNetPhase=phase;
+  if((previousMyRole==='p1'||previousMyRole==='p2') && !seats[previousMyRole] && phase==='idle'){ myRole='spectator'; document.getElementById('spectator-tools').style.display='none'; }
+  ['p1','p2'].forEach(k=>{if(seats[k])seats[k].isMe=(myRole===k);});
+  document.getElementById('rps-group').style.display=(phase==='rps'&&(myRole==='p1'||myRole==='p2'))?'flex':'none';
+  renderSeats();
+  if(phase==='secretpick'&&(myRole==='p1'||myRole==='p2')&&seats[myRole]?.secretWire===null&&!secretModalOpen)openWirePickerModal(myRole);
+  if(phase==='idle'){stopTension();startAmbient();}else{stopAmbient();}
+  if(phase==='cut'&&prev!=='cut')renderCutGrids(currentRoundWinner==='P1'?'p2':'p1');
+}
+function handleRemoteEvent(e){
+  if(!e)return; if(e.type==='rpsReveal')playResultReveal(); else if(e.type==='safeCut'){playSafeSnip();toast('✂️ Cắt an toàn!');} else if(e.type==='death'){triggerDeathEffect(e.seat,e.wire);renderDeadWireFlash(e.seat,e.wire);}
+}
+function netSecretChosen(seat,wire){ if(roomIsHost){seats[seat].secretWire=wire;broadcastState();proceedIfSecretsReady();}else sendToHost({type:'secret',seat,wire}); }
+function netRpsChosen(seat,move){ if(roomIsHost){if(seat==='p1')p1Move=move;else p2Move=move;broadcastState();if(p1Move&&p2Move)revealRPS();}else sendToHost({type:'rps',seat,move}); }
+function netCut(seat,wire){ if(roomIsHost)cutWire(seat,wire);else sendToHost({type:'cut',seat,wire}); }
 
 /* =========================================================
    SESSION / RENDER
    ========================================================= */
 function startNewSession(){
-  seats.p1 = null; seats.p2 = null; spectators = [];
+  closePeerRoom();
+  seats.p1=null; seats.p2=null; spectators=[];
   predictBetP1=0; predictBetP2=0;
   myPredictBet=null; selectedBetTarget=null; pendingPayout=0; pendingPayoutWinner=null; seatQueue=[];
-  p1Move=null; p2Move=null;
+  p1Move=null; p2Move=null; currentRoundWinner=null;
   phase='idle'; myRole=null;
   document.getElementById('spectator-tools').style.display='none';
   document.getElementById('take-seat-btn').style.display='none';
@@ -922,13 +999,15 @@ function setTimer(t){ document.getElementById('timer').textContent = t; }
    SECRET WIRE PICK PHASE
    ========================================================= */
 function beginSecretPickPhase(){
+  if(!roomIsHost && !(myRole==='p1'||myRole==='p2')) return;
   if(!seats.p1 || !seats.p2 || seats.p1.isBot || seats.p2.isBot){ toast('Chỉ 2 người chơi thật đã đăng nhập Google mới được bắt đầu.'); return; }
+  if(!roomIsHost && !seats[myRole]) return;
   phase = 'secretpick';
-  payPendingPayout();
   setStatus('Mỗi người chơi chọn 1 dây chết bí mật');
   setTimer('🔒');
   document.getElementById('rps-group').style.display = 'none';
   renderSeats();
+  if(roomIsHost) broadcastState();
   // Không có bot trong ghế người chơi: chỉ người thật mới được chọn dây chết.
   if(myRole==='p1' || myRole==='p2'){
     openWirePickerModal(myRole);
@@ -950,10 +1029,13 @@ function openWirePickerModal(seatKey){
   window.confirmWirePick = ()=>{
     if(chosen===null) return;
     seats[seatKey].secretWire = chosen;
+    secretModalOpen=false;
+    netSecretChosen(seatKey,chosen);
     closeModal();
     renderSeats();
     proceedIfSecretsReady();
   };
+  secretModalOpen=true;
   openModal(`
     <div class="modal-card">
       <h2>CHỌN DÂY CHẾT BÍ MẬT</h2>
@@ -975,38 +1057,18 @@ function proceedIfSecretsReady(){
    RPS PHASE (10s)
    ========================================================= */
 function startRPSPhase(){
-  stopAmbient();
-  phase='rps';
-  p1Move=null; p2Move=null;
-  document.getElementById('p1-move').textContent='❓';
-  document.getElementById('p2-move').textContent='❓';
-  document.querySelectorAll('.rps-btn').forEach(b=>b.classList.remove('picked'));
-  setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)');
-  updatePools(); updateQueueStrip();
-  renderSeats();
-
-  // Không có bot trong P1/P2: chỉ người chơi Google thật mới được chọn.
-
-  let t=10;
-  setTimer(t+'s');
-  clearInterval(phaseTimer);
-  phaseTimer = setInterval(()=>{
-    t--;
-    if(t<0){
-      clearInterval(phaseTimer);
-      if(!p1Move || !p2Move){ toast('⏳ Một người chưa chọn Kéo / Búa / Bao — ván được làm lại.'); startRPSPhase(); return; }
-      revealRPS();
-      return;
-    }
-    setTimer(t+'s');
-  },1000);
+  if(!roomIsHost){ phase='rps'; stopAmbient(); setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)'); document.getElementById('rps-group').style.display=(myRole==='p1'||myRole==='p2')?'flex':'none'; renderSeats(); return; }
+  stopAmbient(); phase='rps'; p1Move=null; p2Move=null;
+  document.getElementById('p1-move').textContent='❓'; document.getElementById('p2-move').textContent='❓';
+  document.querySelectorAll('.rps-btn').forEach(b=>b.classList.remove('picked')); setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)'); renderSeats(); broadcastState();
+  let t=10; setTimer(t+'s'); clearInterval(phaseTimer); phaseTimer=setInterval(()=>{t--;if(t<0){clearInterval(phaseTimer);if(!p1Move||!p2Move){toast('⏳ Có người chưa chọn — chơi lại.');startRPSPhase();return;}revealRPS();return;}setTimer(t+'s');},1000);
 }
 function randMove(){ return ['rock','paper','scissors'][Math.floor(Math.random()*3)]; }
 function chooseRPS(move){
   if(phase!=='rps') return;
-  if(myRole==='p1') p1Move = move;
-  else if(myRole==='p2') p2Move = move;
-  else return;
+  const seat=myRole==='p1'?'p1':(myRole==='p2'?'p2':null);
+  if(!seat) return;
+  if(roomIsHost){ if(seat==='p1')p1Move=move; else p2Move=move; broadcastState(); if(p1Move&&p2Move)revealRPS(); } else { if(seat==='p1')p1Move=move; else p2Move=move; netRpsChosen(seat,move); }
   document.querySelectorAll('.rps-btn').forEach(b=>b.classList.toggle('picked', b.textContent === ({rock:'✊',paper:'✋',scissors:'✌️'})[move]));
   playClick();
   toast('Đã chọn! Chờ đối thủ...');
@@ -1048,6 +1110,7 @@ function playResultReveal(){
 
 
 function revealRPS(){
+  if(!roomIsHost) return;
   phase='reveal';
   clearInterval(phaseTimer);
   const emo={rock:'✊',paper:'✋',scissors:'✌️'};
@@ -1061,6 +1124,7 @@ function revealRPS(){
   document.getElementById('p1-avatar').classList.add('action-'+p1Move);
   document.getElementById('p2-avatar').classList.add('action-'+p2Move);
   playResultReveal();
+  broadcastEvent({type:'rpsReveal'});
   rps.classList.add('rps-reveal');
   setStatus('BƯỚC 2 · Kết quả oẳn tù tì...');
   setTimer('⏱');
@@ -1071,6 +1135,7 @@ function revealRPS(){
 
   setTimeout(()=>{
     if(currentRoundWinner){
+      broadcastState();
       if(rps) rps.classList.add('rps-winner');
       setTimeout(()=>startCuttingPhase(), 300);
     } else {
@@ -1083,6 +1148,7 @@ function revealRPS(){
    CUTTING PHASE (7s) — winner sees only uncut wires, enlarged
    ========================================================= */
 function startCuttingPhase(){
+  if(!roomIsHost){phase='cut';renderCutGrids(currentRoundWinner==='P1'?'p2':'p1');return;}
   phase='cut';
   const loserSeat = currentRoundWinner==='P1' ? 'p2' : 'p1';
   setStatus(`BƯỚC 3 · ${currentRoundWinner} cắt dây của đối thủ (7s)`);
@@ -1092,6 +1158,7 @@ function startCuttingPhase(){
   document.getElementById('cut-character')?.classList.add('show');
   document.getElementById('cut-character-text').textContent=`${currentRoundWinner} đang cắt dây`;
   renderCutGrids(loserSeat);
+  broadcastState();
 
   let t=7;
   setTimer(t+'s');
@@ -1135,6 +1202,7 @@ function renderCutGrids(loserSeat){
 }
 function cutWire(seatKey, wireNum){
   if(phase!=='cut') return;
+  if(!roomIsHost){ netCut(seatKey,wireNum); return; }
   const s = seats[seatKey];
   if(!s || s.wiresCut.includes(wireNum)) return;
   clearInterval(phaseTimer);
@@ -1143,11 +1211,15 @@ function cutWire(seatKey, wireNum){
 
   if(isDead){
     triggerDeathEffect(seatKey, wireNum);
+    broadcastEvent({type:'death',seat:seatKey,wire:wireNum});
+    broadcastState();
     document.getElementById('cut-character')?.classList.remove('show');
     renderDeadWireFlash(seatKey, wireNum);
     setTimeout(()=>{ eliminatePlayer(seatKey); }, 900);
   } else {
     playSafeSnip();
+    broadcastEvent({type:'safeCut',seat:seatKey,wire:wireNum});
+    broadcastState();
     document.getElementById('cut-character')?.classList.remove('show');
     toast('An toàn! Vòng tiếp theo...');
     renderSeats();
@@ -1195,6 +1267,7 @@ function renderDeadWireFlash(seatKey, wireNum){
    ELIMINATION / MATCH RESOLUTION
    ========================================================= */
 function eliminatePlayer(loserSeatKey){
+  if(!roomIsHost) return;
   const winnerSeatKey=loserSeatKey==='p1'?'p2':'p1';
   const winnerTag=winnerSeatKey==='p1'?'P1':'P2';
   const loser=seats[loserSeatKey];
@@ -1202,13 +1275,6 @@ function eliminatePlayer(loserSeatKey){
 
   toast(`💥 ${loser.name} bị loại! Ghế được mở cho khán giả đăng ký.`);
   const winner=seats[winnerSeatKey];
-
-  // Chuyển tiền thắng sang trạng thái chờ, KHÔNG trả ngay.
-  if(myPredictBet && myPredictBet.target===winnerTag){
-    pendingPayout=myPredictBet.amount*3;
-    pendingPayoutWinner=winnerTag;
-  }
-  syncCoinsUI();
 
   if(loser.isMe){
     myRole='spectator';
@@ -1229,6 +1295,7 @@ function eliminatePlayer(loserSeatKey){
 
   // KHÔNG tự động cho máy vào ghế.
   // Hệ thống chỉ chọn người đầu tiên trong hàng đợi.
+  broadcastState();
   setTimeout(processSeatQueue,500);
 }
 
@@ -1244,41 +1311,19 @@ function openSeatRegistration(){
     </div>`);
 }
 function confirmSeatRegistration(){
-  if(!googleUser){ openGoogleLogin(); return; }
-  const name=(document.getElementById('queue-player-name')?.value||'').trim();
+  if(!googleUser){openGoogleLogin();return;}
+  const name=(document.getElementById('queue-player-name')?.value||publicPlayerName||googleUser.name||'Người chơi').trim();
   if(name.length<2){toast('Tên công khai phải có ít nhất 2 ký tự');return;}
-  closeModal();
-  myRole='spectator';
-  const already=seatQueue.some(q=>q.isMe);
-  if(already){toast('Bạn đã có trong hàng chờ');return;}
-  seatQueue.push({name,joinedAt:Date.now(),isMe:true});
-  updateQueueStrip();
-  toast(`⏳ Đã đăng ký lúc ${new Date().toLocaleTimeString('vi-VN')}. Chờ hệ thống xét theo thứ tự.`);
-  processSeatQueue();
+  closeModal(); publicPlayerName=name;
+  if(!roomIsHost){sendToHost({type:'register',name,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]});setStatus('Đã gửi yêu cầu vào ghế...');return;}
+  const seat=!seats.p1?'p1':(!seats.p2?'p2':null); if(!seat){toast('Hai ghế đã có người');return;}
+  myRole=seat; seats[seat]={name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};
+  document.getElementById('spectator-tools').style.display='none'; renderSeats(); broadcastState(); if(seats.p1&&seats.p2)beginSecretPickPhase();
 }
 function processSeatQueue(){
-  const openSeat=!seats.p1?'p1':(!seats.p2?'p2':null);
-  if(!openSeat || !seatQueue.length) return;
-  const next=seatQueue.shift();
-  clearTimeout(window._seatFillTimeout);
-
-  if(next.isMe && googleUser){
-    myRole=openSeat;
-    seats[openSeat]={name:next.name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};
-    document.getElementById('spectator-tools').style.display='none';
-    renderSeats();
-    toast(`🎮 Bạn là người đăng ký nhanh nhất — vào ${openSeat.toUpperCase()}!`);
-  }else{
-    // Hàng đợi ngoài máy chủ sẽ được xử lý ở backend; không tạo bot.
-    seatQueue.unshift(next);
-    return;
-  }
-
-  if(seats.p1 && seats.p2) beginSecretPickPhase();
-  else {
-    setStatus(`Đang chờ người chơi thật vào ${openSeat==='p1'?'P2':'P1'}...`);
-    document.getElementById('rps-group').style.display='none';
-  }
+  if(!roomIsHost)return;
+  const openSeat=!seats.p1?'p1':(!seats.p2?'p2':null); if(!openSeat||!seatQueue.length)return;
+  const next=seatQueue.shift(); if(next.isMe){myRole=openSeat;seats[openSeat]={name:next.name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};renderSeats();broadcastState();}
 }
 function takeEmptySeat(){
   if(!seats.p1 && !seats.p2){toast('Hãy đăng ký trước; hệ thống không cho máy tự ngồi ghế.');return;}
@@ -1286,52 +1331,18 @@ function takeEmptySeat(){
 }
 
 /* =========================================================
-   SPECTATOR CHIP BETTING
+   SPECTATOR MODE — non-wagering
    ========================================================= */
-function selectChip(amount){
-  if(myRole!=='spectator'){toast('Chỉ khán giả mới được đặt chip');return;}
-  selectedChip=amount;
-  document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('selected',Number(x.dataset.chip)===amount));
-  playClick();
-}
-function selectBetTarget(target){
-  if(myRole!=='spectator'){toast('Chỉ khán giả mới được đặt chip');return;}
-  if(myPredictBet){toast('Chip đã đặt, không thể thu hồi hoặc đổi người');return;}
-  selectedBetTarget=target;
-  document.getElementById('target-p1').classList.toggle('selected',target==='P1');
-  document.getElementById('target-p2').classList.toggle('selected',target==='P2');
-  playClick();
-}
-function placeMatchBet(){
-  if(myRole!=='spectator'){toast('Bạn phải ở vai trò khán giả');return;}
-  if(!seats.p1 || !seats.p2){toast('Chưa có đủ 2 người chơi thật để đặt chip');return;}
-  if(phase!=='idle' && phase!=='secretpick'){toast('Chỉ được đặt chip trong thời gian chuẩn bị');return;}
-  if(!selectedBetTarget){toast('Hãy chọn P1 hoặc P2 trước');return;}
-  if(myPredictBet){toast('Chip đã đặt và không thể thu hồi');return;}
-  if(coins<selectedChip){toast('Không đủ xu để đặt chip');return;}
-
-  coins-=selectedChip;
-  if(selectedBetTarget==='P1') predictBetP1+=selectedChip; else predictBetP2+=selectedChip;
-  myPredictBet={target:selectedBetTarget,amount:selectedChip};
-  syncCoinsUI(); updatePools(); playChime(true);
-  toast(`🪙 Đã đặt chip ${selectedChip.toLocaleString('vi-VN')} vào ${selectedBetTarget}. Không thể thu hồi · thắng nhận x3.`);
-}
-function payPendingPayout(){
-  if(pendingPayout<=0) return;
-  const amount=pendingPayout;
-  pendingPayout=0;
-  const winner=pendingPayoutWinner;
-  pendingPayoutWinner=null;
-  coins+=amount;
-  syncCoinsUI(); updatePools();
-  toast(`💰 Tiền thắng ${amount.toLocaleString('vi-VN')} xu đã được trả trong thời gian chuẩn bị (${winner} ×3).`);
-  playChime(true);
-}
+function selectChip(){toast('Khán giả chỉ xem trận đấu.');}
+function selectBetTarget(){toast('Khán giả chỉ xem trận đấu.');}
+function placeMatchBet(){toast('Khán giả chỉ xem trận đấu.');}
+function predictWinner(){toast('Khán giả chỉ xem trận đấu.');}
 
 /* =========================================================
    NAV
    ========================================================= */
 function leaveArena(){
+  closePeerRoom();
   stopAmbient(); stopTension();
   clearInterval(phaseTimer); clearTimeout(botMoveTimeout); clearTimeout(window._seatFillTimeout);
   showScreen('screen-home');
@@ -1340,6 +1351,7 @@ function leaveArena(){
 
 syncCoinsUI();
 renderHomeProfile();
+const roomBadge=document.getElementById('room-code-badge'); if(roomBadge) roomBadge.textContent='Phòng: —';
 window.addEventListener('load',()=>{ setTimeout(initGoogleSignIn,300); });
 </script>
 </body>
