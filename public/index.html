@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✂️ Oẳn Tù Tì Cắt Dây 💣</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+    
+    * { box-sizing: border-box; font-family: 'Fredoka', cursive, sans-serif; }
+    body { background: linear-gradient(135deg, #0f121d, #1a1e2e); color: #fff; margin: 0; padding: 15px; min-height: 100vh; }
+    
+    /* Top Bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; background: #181c2b; border: 2px solid #2d354d; border-radius: 15px; padding: 10px 20px; max-width: 1000px; margin: 0 auto 15px; }
+    .badge { background: #3b4363; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; }
+    .gold-box { color: #ffd54f; font-weight: 700; font-size: 1.1rem; }
+
+    /* Layout Main */
+    .game-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1000px; margin: 0 auto; }
+    .player-card { background: #181c2b; border: 3px solid #2d354d; border-radius: 20px; padding: 15px; text-align: center; position: relative; }
+    .player-card.active { border-color: #ffb74d; box-shadow: 0 0 15px rgba(255, 183, 77, 0.3); }
+
+    /* Wire Styling */
+    .wire-list { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+    .wire-item { background: #232a40; border: 2px solid #3b4363; border-radius: 10px; padding: 10px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .wire-item:hover { background: #313a57; border-color: #ffb74d; }
+    .wire-item.cut { background: #12141d; color: #555; border-color: #222; text-decoration: line-through; cursor: not-allowed; }
+
+    /* Control Panel */
+    .center-panel { max-width: 1000px; margin: 15px auto; background: #181c2b; border: 3px solid #2d354d; border-radius: 20px; padding: 20px; text-align: center; }
+    
+    /* Buttons */
+    .btn { background: #ff9800; border: none; border-bottom: 4px solid #e65100; color: white; font-weight: bold; padding: 10px 20px; font-size: 1rem; border-radius: 12px; cursor: pointer; margin: 5px; transition: 0.1s; }
+    .btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+    .btn-green { background: #4caf50; border-color: #2e7d32; }
+    .btn-blue { background: #2196f3; border-color: #1565c0; }
+    .btn-rps { font-size: 2.2rem; padding: 15px 30px; border-radius: 20px; }
+
+    /* Betting Section */
+    .bet-bar { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    .bet-btn { background: #2e3754; border: 2px solid #45527a; color: #ffd54f; font-weight: bold; padding: 8px 15px; border-radius: 10px; cursor: pointer; }
+    .bet-btn:hover { background: #3f4c73; }
+
+    /* Modal / Lobby */
+    .card { background: #181c2b; border: 3px solid #2d354d; border-radius: 20px; padding: 25px; max-width: 600px; margin: 30px auto; text-align: center; }
+    input { padding: 12px; border-radius: 10px; border: 2px solid #3b4363; background: #0f121d; color: white; width: 80%; font-size: 1rem; margin-bottom: 12px; outline: none; }
+    
+    .status-text { font-size: 1.2rem; color: #4caf50; font-weight: bold; margin: 10px 0; }
+    .timer { font-size: 2rem; color: #ff5252; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- LOBBY SCREEN -->
+  <div id="lobby-card" class="card">
+    <h1 style="color:#ffd54f; margin-top:0;">✂️ OẲN TÙ TÌ CẮT DÂY 💣</h1>
+    <input type="text" id="playerName" placeholder="Nhập Tên Của Bạn..."><br>
+
+    <div style="margin: 20px 0; border-top: 2px dashed #3b4363; padding-top: 20px;">
+      <h3>⚡ THI ĐẤU NHANH (QUICK MATCH)</h3>
+      <button class="btn btn-green" onclick="quickMatch()">Tìm Trận Nhanh</button>
+    </div>
+
+    <div style="margin: 20px 0; border-top: 2px dashed #3b4363; padding-top: 20px;">
+      <h3>🔒 CHƠI VỚI BẠN (PRIVATE ROOM)</h3>
+      <input type="text" id="privateCode" placeholder="Nhập Mã Phòng (VD: 8899)"><br>
+      <button class="btn btn-blue" onclick="joinPrivate()">Vào / Tạo Phòng Khóa</button>
+    </div>
+
+    <div style="margin-top: 20px; border-top: 2px dashed #3b4363; padding-top: 20px;">
+      <h3>🌐 PHÒNG ĐANG MỞ</h3>
+      <div id="public-room-list" style="max-height:150px; overflow-y:auto; color:#888;">Đang tải...</div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" style="display:none;">
+    
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="badge" id="room-id-display">PHÒNG: --</div>
+      <div class="badge" id="spectator-count">👥 Khán giả: 0</div>
+      <div class="gold-box" id="my-coins">💰 $10,000</div>
+    </div>
+
+    <!-- MAIN BOARD -->
+    <div class="game-container">
+      
+      <!-- PLAYER 1 -->
+      <div class="player-card" id="card-p1">
+        <h3 id="p1-name">Player 1</h3>
+        <div class="badge" id="p1-bet-rate" style="background:#2e3754;">Cược: 0%</div>
+        <div class="wire-list" id="p1-wires"></div>
+      </div>
+
+      <!-- PLAYER 2 -->
+      <div class="player-card" id="card-p2">
+        <h3 id="p2-name">Player 2</h3>
+        <div class="badge" id="p2-bet-rate" style="background:#2e3754;">Cược: 0%</div>
+        <div class="wire-list" id="p2-wires"></div>
+      </div>
+
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="center-panel">
+      <div class="status-text" id="game-status">Đang chờ đối thủ...</div>
+      <div class="timer" id="timer-display" style="display:none;">5</div>
+
+      <!-- STEP 1: SET DEADWIRE -->
+      <div id="deadwire-controls" style="display:none;">
+        <p style="color:#ffd54f;">🤫 Chọn 1 dây của bạn làm DÂY TỬ THẦN:</p>
+      </div>
+
+      <!-- STEP 2: SPECTATOR BETTING -->
+      <div id="betting-controls" style="display:none;">
+        <p>🎯 KHÁN GIẢ ĐẶT CƯỢC NGƯỜI THẮNG:</p>
+        <button class="btn btn-blue" onclick="setBetTarget('p1')">Cược P1</button>
+        <button class="btn btn-blue" onclick="setBetTarget('p2')">Cược P2</button>
+        <div class="bet-bar">
+          <button class="bet-btn" onclick="placeBet(100)">+100</button>
+          <button class="bet-btn" onclick="placeBet(500)">+500</button>
+          <button class="bet-btn" onclick="placeBet(1000)">+1k</button>
+          <button class="bet-btn" onclick="placeBet(10000)">+10k</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: RPS -->
+      <div id="rps-controls" style="display:none;">
+        <button class="btn btn-rps" onclick="playRPS('rock')">✊</button>
+        <button class="btn btn-rps" onclick="playRPS('paper')">✋</button>
+        <button class="btn btn-rps" onclick="playRPS('scissors')">✌️</button>
+      </div>
+
+      <br>
+      <button class="btn" style="background:#e53935; border-color:#b71c1c; font-size:0.8rem;" onclick="location.reload()">Thoát Phòng</button>
+    </div>
+
+  </div>
+
+  <script>
+    const socket = io();
+    let myRole = '', currentRoomId = '', gameState = {}, selectedBetTarget = 'p1';
+
+    // --- SOUND EFFECTS (Web Audio API) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+
+      if (type === 'click') {
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+      } else if (type === 'boom') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.6);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+      }
+    }
+
+    function getName() {
+      return document.getElementById('playerName').value.trim() || 'Người chơi ' + Math.floor(Math.random()*100);
+    }
+
+    function quickMatch() {
+      playSound('click');
+      joinRoom('QUICK_MATCH_' + Math.floor(Math.random()*2));
+    }
+
+    function joinPrivate() {
+      playSound('click');
+      const code = document.getElementById('privateCode').value.trim() || '8899';
+      joinRoom('ROOM_' + code);
+    }
+
+    function joinRoom(roomId) {
+      currentRoomId = roomId;
+      socket.emit('joinRoom', { roomId, playerName: getName() });
+      document.getElementById('lobby-card').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'block';
+      document.getElementById('room-id-display').innerText = 'PHÒNG: ' + roomId;
+    }
+
+    // --- LISTENERS ---
+    socket.on('joined', (data) => {
+      myRole = data.role;
+      document.getElementById('my-coins').innerText = `💰 $${data.coin.toLocaleString()}`;
+    });
+
+    socket.on('coinUpdate', (coin) => {
+      document.getElementById('my-coins').innerText = `💰 $${coin.toLocaleString()}`;
+    });
+
+    socket.on('notification', (msg) => { alert(msg); });
+
+    socket.on('timerUpdate', (time) => {
+      const timerEl = document.getElementById('timer-display');
+      timerEl.style.display = 'block';
+      timerEl.innerText = time;
+    });
+
+    socket.on('roomState', (state) => {
+      gameState = state;
+      updateUI();
+    });
+
+    socket.on('rpsResult', (data) => {
+      playSound('click');
+      document.getElementById('game-status').innerText = data.message;
+    });
+
+    // Refresh danh sách phòng public
+    setInterval(() => {
+      if (document.getElementById('lobby-card').style.display !== 'none') {
+        socket.emit('getPublicRooms');
+      }
+    }, 2000);
+
+    socket.on('publicRoomsList', (list) => {
+      const container = document.getElementById('public-room-list');
+      container.innerHTML = '';
+      if (list.length === 0) { container.innerHTML = 'Không có phòng nào đang chờ.'; return; }
+      list.forEach(r => {
+        container.innerHTML += `
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px; background:#232a40; padding:8px; border-radius:8px;">
+            <span>Phòng ${r.id} (${r.spectators} người xem)</span>
+            <button class="btn btn-green" style="font-size:0.7rem; padding:4px 8px;" onclick="joinRoom('${r.id}')">Vào xem/chơi</button>
+          </div>`;
+      });
+    });
+
+    // --- RENDER GAME UI ---
+    function updateUI() {
+      // Names & Spectators
+      document.getElementById('p1-name').innerText = gameState.players.p1 ? gameState.players.p1.name : 'Chờ Player 1...';
+      document.getElementById('p2-name').innerText = gameState.players.p2 ? gameState.players.p2.name : 'Chờ Player 2...';
+      document.getElementById('spectator-count').innerText = `👥 Khán giả: ${Object.keys(gameState.spectators).length}`;
+
+      // Bet Rates
+      const totalBets = gameState.bets.p1 + gameState.bets.p2;
+      const rate1 = totalBets > 0 ? Math.round((gameState.bets.p1 / totalBets) * 100) : 50;
+      const rate2 = totalBets > 0 ? Math.round((gameState.bets.p2 / totalBets) * 100) : 50;
+      document.getElementById('p1-bet-rate').innerText = `Cược: ${rate1}% ($${gameState.bets.p1})`;
+      document.getElementById('p2-bet-rate').innerText = `Cược: ${rate2}% ($${gameState.bets.p2})`;
+
+      // Controls visibility
+      ['deadwire-controls', 'betting-controls', 'rps-controls', 'timer-display'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+
+      const statusEl = document.getElementById('game-status');
+
+      if (gameState.gameState === 'SETUP_DEADWIRE') {
+        statusEl.innerText = "🤫 Hãy chọn 1 DÂY TỬ THẦN bí mật trên bàn!";
+        if (myRole === 'p1' || myRole === 'p2') document.getElementById('deadwire-controls').style.display = 'block';
+      } else if (gameState.gameState === 'BETTING') {
+        statusEl.innerText = "🎯 KHÁN GIẢ ĐẶT CƯỢC PHẦN THƯỞNG!";
+        if (myRole === 'spectator') document.getElementById('betting-controls').style.display = 'block';
+      } else if (gameState.gameState === 'RPS') {
+        statusEl.innerText = "✊✌️✋ OẲN TÙ TÌ!";
+        if (myRole === 'p1' || myRole === 'p2') document.getElementById('rps-controls').style.display = 'block';
+      } else if (gameState.gameState === 'CUTTING') {
+        if (myRole === gameState.turnWinner) {
+          statusEl.innerText = "🎉 BẠN THẮNG LƯỢT! Hãy chọn 1 dây đối thủ để CẮT!";
+        } else {
+          statusEl.innerText = "⚠️ Đối thủ đang chọn cắt dây...";
+        }
+      } else if (gameState.gameState === 'GAME_OVER') {
+        playSound('boom');
+        statusEl.innerText = `💥 BÙM! Dây Tử Thần đã nổ! NGƯỜI THẮNG: ${gameState.winner.toUpperCase()}`;
+      }
+
+      renderWires();
+    }
+
+    // Render Dàn dây 10 sợi cho mỗi bên
+    function renderWires() {
+      ['p1', 'p2'].forEach(role => {
+        const container = document.getElementById(`${role}-wires`);
+        container.innerHTML = '';
+        const cutList = gameState.cutWires[role] || [];
+        const isMySelf = myRole === role;
+
+        for (let i = 1; i <= 10; i++) {
+          const isCut = cutList.includes(i);
+          const wire = document.createElement('div');
+          wire.className = `wire-item ${isCut ? 'cut' : ''}`;
+          wire.innerText = isCut ? `✂️ Dây ${i} (Đã cắt)` : `💣 Dây Sợi ${i}`;
+
+          // Logic chọn Dây Tử Thần
+          if (gameState.gameState === 'SETUP_DEADWIRE' && isMySelf) {
+            wire.onclick = () => {
+              playSound('click');
+              socket.emit('setDeadWire', { roomId: currentRoomId, wireIndex: i });
+              document.getElementById('deadwire-controls').style.display = 'none';
+              document.getElementById('game-status').innerText = `Đã chọn ẩn Dây ${i}. Chờ đối thủ...`;
+            };
+          }
+
+          // Logic Cắt Dây của đối thủ
+          if (gameState.gameState === 'CUTTING' && myRole === gameState.turnWinner && myRole !== role && !isCut) {
+            wire.onclick = () => {
+              playSound('click');
+              socket.emit('cutWire', { roomId: currentRoomId, wireIndex: i });
+            };
+          }
+
+          container.appendChild(wire);
+        }
+      });
+    }
+
+    // Bet Handlers
+    function setBetTarget(target) { selectedBetTarget = target; playSound('click'); }
+    function placeBet(amount) {
+      playSound('click');
+      socket.emit('placeBet', { roomId: currentRoomId, target: selectedBetTarget, amount });
+    }
+
+    function playRPS(choice) {
+      playSound('click');
+      socket.emit('playRPS', { roomId: currentRoomId, choice });
+      document.getElementById('rps-controls').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
