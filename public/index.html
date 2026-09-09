@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây - FULL LOGIC + CHAT & EMOTE</title>
+  <title>Oẳn Tù Tì Cắt Dây - Strict Room State & Auto Reset</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@800;900&display=swap');
@@ -77,24 +77,16 @@
     }
 
     .room-input {
-      width: 85%;
-      padding: 10px;
-      border-radius: 14px;
-      border: 3px solid #ffd200;
-      font-family: 'Bungee';
-      font-size: 18px;
-      text-align: center;
-      outline: none;
-      background: #091738;
-      color: #fff;
+      width: 85%; padding: 10px; border-radius: 14px;
+      border: 3px solid #ffd200; font-family: 'Bungee'; font-size: 18px;
+      text-align: center; outline: none; background: #091738; color: #fff;
     }
 
     .btn-action {
       background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
       border: 3px solid #fff; border-radius: 16px; padding: 10px 20px;
       font-family: 'Bungee'; font-size: 14px; color: #000; cursor: pointer;
-      box-shadow: 0 4px 0 #8c5a00; transition: transform 0.1s;
-      width: 85%;
+      box-shadow: 0 4px 0 #8c5a00; transition: transform 0.1s; width: 85%;
     }
     .btn-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #8c5a00; }
     .btn-blue { background: linear-gradient(180deg, #00d2ff 0%, #0066cc 100%); color: #fff; box-shadow: 0 4px 0 #003366; }
@@ -123,7 +115,7 @@
     }
 
     /* BÀN CẮT DÂY */
-    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 320px; }
+    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 320px; position: relative; }
     .wire-column { display: flex; flex-direction: column; gap: 5px; width: 180px; }
     .wire-item {
       height: 26px; background: linear-gradient(90deg, #ff3b3b, #b30000);
@@ -132,6 +124,7 @@
       font-family: 'Bungee'; font-size: 10px; cursor: pointer;
     }
     .wire-item.blue { background: linear-gradient(90deg, #0099ff, #0044cc); }
+    .wire-item.cut { opacity: 0.25; filter: grayscale(1); cursor: not-allowed; text-decoration: line-through; }
 
     .timer-badge {
       font-family: 'Bungee'; font-size: 16px; background: #ff3366;
@@ -165,7 +158,7 @@
     /* MODAL */
     .modal-overlay {
       position: absolute; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+      background: rgba(0,0,0,0.88); display: flex; flex-direction: column;
       justify-content: center; align-items: center; z-index: 100;
     }
     .grid-select-dead { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
@@ -215,33 +208,30 @@
       <div style="display:flex; justify-content:space-between; align-items:center; z-index:5;">
         <div style="display:flex; gap:10px; align-items:center;">
           <span style="font-family:'Bungee'; background:#183875; padding:4px 12px; border-radius:12px; border:2px solid #fff;" id="roomDisplayCode">MÃ: ----</span>
-          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:12px;" id="statusMsg">Đang chờ đủ 2 người chơi...</span>
+          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:12px;" id="statusMsg">⏳ Đang chờ người chơi thứ 2...</span>
         </div>
         
-        <!-- NÚT XIN LÀM NGƯỜI CHƠI (HIỆN KHI LÀ KHÁN GIẢ) -->
         <button id="btnRequestPlay" onclick="requestToPlay()" class="btn-action btn-purple" style="width:auto; padding:4px 12px; font-size:11px; display:none;">✋ XIN LÀM NGƯỜI CHƠI</button>
         
-        <div class="timer-badge" id="timerTxt">⏱️ 15s</div>
+        <div class="timer-badge" id="timerTxt">⏱️ CHỜ NGƯỜI</div>
         <button onclick="leaveBattle()" class="btn-action" style="width:auto; padding:4px 12px; background:#ff3366; color:#fff; font-size:11px;">Thoát</button>
       </div>
 
       <div class="battle-main-layout">
-        <!-- ARENA CẮT DÂY -->
         <div class="arena-section">
           <div class="battle-arena" id="arenaBox">
             <div class="wire-column" id="p1WireCol"></div>
             <div style="text-align:center;">
               <div id="handP1" style="font-size:60px;">✋</div>
-              <div style="font-family:'Bungee'; font-size:18px; color:#ffeb3b;">VS</div>
+              <div style="font-family:'Bungee'; font-size:18px; color:#ffeb3b;" id="vsLabel">VS</div>
               <div id="handP2" style="font-size:60px;">✊</div>
             </div>
             <div class="wire-column" id="p2WireCol"></div>
           </div>
 
-          <!-- EMOTE BAR & ACTION -->
           <div class="bet-bar">
             <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:10px; color:#a2c4ff;">Gửi Emote trêu ghẹo:</span>
+              <span style="font-size:10px; color:#a2c4ff;">Emote trêu ghẹo:</span>
               <div class="emote-bar">
                 <button class="btn-emote" onclick="sendEmote('🤡')">🤡</button>
                 <button class="btn-emote" onclick="sendEmote('🤣')">🤣</button>
@@ -259,7 +249,6 @@
           </div>
         </div>
 
-        <!-- KHUNG CHAT RIÊNG -->
         <div class="chat-section">
           <div class="chat-title">💬 CHAT TRONG PHÒNG</div>
           <div class="chat-messages" id="chatBox">
@@ -273,13 +262,14 @@
       </div>
     </div>
 
-    <!-- MODAL CHỌN DÂY CHẾT -->
+    <!-- MODAL CHỌN DÂY CHẾT BAN ĐẦU -->
     <div class="modal-overlay" id="deadWireModal" style="display:none;">
-      <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT (1-10)</h2>
+      <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT CỦA BẠN (1-10)</h2>
+      <p style="font-size:12px; color:#a2c4ff; margin-top:5px;">Nếu đối thủ cắt trúng dây này, bạn sẽ NỔ VÀ THUA NGAY!</p>
       <div class="grid-select-dead" id="deadWireGrid"></div>
     </div>
 
-    <!-- MODAL YÊU CẦU ĐỔI CHỖ -->
+    <!-- MODAL ĐỔI CHỖ -->
     <div class="modal-overlay" id="swapRequestModal" style="display:none;">
       <h3 style="font-family:'Bungee'; color:#ffeb3b; text-align:center;" id="swapMsgTxt">Khán giả muốn xin đổi chỗ làm Người chơi!</h3>
       <div style="display:flex; gap:15px; margin-top:20px;">
@@ -294,16 +284,17 @@
     let coins = 10000;
     let role = 'player';
     let currentRoomId = null;
-    let playersInRoom = 1;
+    let playerCount = 1; // Đếm số Người chơi (Cần = 2 mới chạy)
     let myDeadWire = null;
     let timer = 15;
     let timerInterval = null;
     let myChoice = null;
+    let isGameRunning = false;
 
-    // --- TẠO VÀ NHẬP PHÒNG ---
+    // --- MỞ VÀ VÀO PHÒNG ---
     function createNewRoom(selectedRole) {
       currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-      enterBattleRoom(currentRoomId, selectedRole);
+      enterBattleRoom(currentRoomId, selectedRole, true);
     }
 
     function joinRoom(selectedRole) {
@@ -313,172 +304,46 @@
         return;
       }
       currentRoomId = roomInput;
-      enterBattleRoom(currentRoomId, selectedRole);
+      enterBattleRoom(currentRoomId, selectedRole, false);
     }
 
-    function enterBattleRoom(roomId, userRole) {
+    function enterBattleRoom(roomId, userRole, isCreator) {
       role = userRole;
       document.getElementById('screenMenu').classList.remove('active');
       document.getElementById('screenBattle').classList.add('active');
       document.getElementById('roomDisplayCode').innerText = "MÃ: " + roomId;
 
+      // Giả lập: Người tạo phòng vào trước (1/2), người gia nhập sau (2/2)
+      playerCount = isCreator ? 1 : 2;
+
       if (role === 'spectator') {
         document.getElementById('roleTxt').innerText = "Khán Giả (Phòng " + roomId + ")";
         document.getElementById('rpsBtnGroup').style.display = 'none';
         document.getElementById('btnRequestPlay').style.display = 'block';
-        initWires();
+        resetGameArena();
         addChatMessage("Hệ thống", "Bạn tham gia với vai trò Khán giả.");
-        start10sPreparation();
+        checkRoomReadyState();
       } else {
         document.getElementById('roleTxt').innerText = "Người Chơi (Phòng " + roomId + ")";
         document.getElementById('rpsBtnGroup').style.display = 'flex';
         document.getElementById('btnRequestPlay').style.display = 'none';
+        
+        // Luôn mở chọn dây chết bí mật trước khi vào trận
         openDeadWireModal();
       }
     }
 
-    // --- CHỌN DÂY CHẾT & KIỂM TRA NGƯỜI CHƠI ---
-    function openDeadWireModal() {
-      const modal = document.getElementById('deadWireModal');
-      const grid = document.getElementById('deadWireGrid');
-      modal.style.display = 'flex';
-      grid.innerHTML = '';
-
-      for (let i = 1; i <= 10; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-action';
-        btn.style.width = 'auto';
-        btn.innerText = 'Dây ' + i;
-        btn.onclick = () => {
-          myDeadWire = i;
-          modal.style.display = 'none';
-          initWires();
-          checkRoomPlayers();
-        };
-        grid.appendChild(btn);
-      }
-    }
-
-    function checkRoomPlayers() {
-      document.getElementById('statusMsg').innerText = "⏳ Đang đợi đối thủ vào phòng " + currentRoomId + "...";
-      setTimeout(() => {
-        playersInRoom = 2;
-        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người! Bắt đầu lượt 15s!";
-        start15sTimer();
-      }, 2000);
-    }
-
-    // --- XIN LÀM NGƯỜI CHƠI & ĐỔI CHỖ ---
-    function requestToPlay() {
-      addChatMessage("Bạn", "Đã gửi yêu cầu xin làm Người chơi...");
-      // Giả lập hiện thông báo xin đổi chỗ ở phía Người chơi
-      setTimeout(() => {
-        if (role === 'player') {
-          document.getElementById('swapRequestModal').style.display = 'flex';
-        } else {
-          // Giả lập Người chơi đồng ý đổi chỗ
-          alert("Người chơi đã ĐỒNG Ý đổi chỗ cho bạn!");
-          role = 'player';
-          enterBattleRoom(currentRoomId, 'player');
-        }
-      }, 1000);
-    }
-
-    function acceptSwap(isAccepted) {
-      document.getElementById('swapRequestModal').style.display = 'none';
-      if (isAccepted) {
-        addChatMessage("Hệ thống", "Bạn đã đồng ý đổi chỗ cho Khán giả!");
-        role = 'spectator';
-        enterBattleRoom(currentRoomId, 'spectator');
-      } else {
-        addChatMessage("Hệ thống", "Bạn đã từ chối yêu cầu đổi chỗ.");
-      }
-    }
-
-    // --- ĐẾM NGƯỢC 15S & XỬ LÝ OẮN TÙ TÌ ---
-    function start15sTimer() {
-      timer = 15;
-      myChoice = null;
-      document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
+    // --- RESET GAME VỀ BAN ĐẦU (KHI ĐỔI NGƯỜI HOẶC CÓ NGƯỜI CHẾT) ---
+    function resetGameArena() {
       clearInterval(timerInterval);
-
-      timerInterval = setInterval(() => {
-        timer--;
-        document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
-
-        if (timer <= 0) {
-          clearInterval(timerInterval);
-          if (!myChoice && role === 'player') {
-            const choices = ['rock', 'paper', 'scissors'];
-            myChoice = choices[Math.floor(Math.random() * 3)];
-            document.getElementById('statusMsg').innerText = "⚠️ Tự động ra bài ngẫu nhiên!";
-          }
-          resolveRPS();
-        }
-      }, 1000);
-    }
-
-    function chooseRPS(choice) {
-      myChoice = choice;
-      document.getElementById('statusMsg').innerText = "✅ Đã chốt đòn!";
-    }
-
-    function resolveRPS() {
-      const choices = ['rock', 'paper', 'scissors'];
-      const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
-      const oppChoice = choices[Math.floor(Math.random() * 3)];
-
-      document.getElementById('handP1').innerText = icons[myChoice || 'rock'];
-      document.getElementById('handP2').innerText = icons[oppChoice];
-
-      document.getElementById('statusMsg').innerText = "🎉 Hoàn tất lượt đấu! Chuẩn bị lượt mới...";
-      start10sPreparation();
-    }
-
-    function start10sPreparation() {
-      let prepTime = 10;
-      document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
-      
-      const prepInterval = setInterval(() => {
-        prepTime--;
-        document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
-        if (prepTime <= 0) {
-          clearInterval(prepInterval);
-          if (role === 'player') start15sTimer();
-        }
-      }, 1000);
-    }
-
-    // --- CHAT & EMOTE TRÊU GHẸO ---
-    function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-
-      addChatMessage("Bạn", text);
-      input.value = '';
-    }
-
-    function addChatMessage(sender, text) {
-      const chatBox = document.getElementById('chatBox');
-      const msgItem = document.createElement('div');
-      msgItem.className = 'chat-msg-item';
-      msgItem.innerHTML = `<b>${sender}:</b> ${text}`;
-      chatBox.appendChild(msgItem);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function sendEmote(emoji) {
-      // Bắn emote trực tiếp lên màn hình arena
-      const arena = document.getElementById('arenaBox');
-      const pop = document.createElement('div');
-      pop.className = 'emote-pop';
-      pop.innerText = emoji;
-      pop.style.left = (Math.random() * 60 + 20) + '%';
-      pop.style.top = (Math.random() * 40 + 30) + '%';
-      arena.appendChild(pop);
-
-      setTimeout(() => pop.remove(), 1500);
+      isGameRunning = false;
+      myChoice = null;
+      myDeadWire = null;
+      document.getElementById('handP1').innerText = '✋';
+      document.getElementById('handP2').innerText = '✊';
+      document.getElementById('timerTxt').innerText = "⏱️ CHỜ NGƯỜI";
+      initWires(); // Dựng lại 10 dây nguyên vẹn
+      addChatMessage("Hệ thống", "🔄 Phòng đấu đã Reset lại trạng thái ban đầu!");
     }
 
     function initWires() {
@@ -499,11 +364,185 @@
       }
     }
 
+    // --- LỰA CHỌN DÂY CHẾT BAN ĐẦU ---
+    function openDeadWireModal() {
+      const modal = document.getElementById('deadWireModal');
+      const grid = document.getElementById('deadWireGrid');
+      modal.style.display = 'flex';
+      grid.innerHTML = '';
+
+      for (let i = 1; i <= 10; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-action';
+        btn.style.width = 'auto';
+        btn.innerText = 'Dây ' + i;
+        btn.onclick = () => {
+          myDeadWire = i;
+          modal.style.display = 'none';
+          resetGameArena();
+          checkRoomReadyState();
+        };
+        grid.appendChild(btn);
+      }
+    }
+
+    // --- PHÒNG ĐỦ 2 NGƯỜI MỚI BẮT ĐẦU ---
+    function checkRoomReadyState() {
+      if (playerCount < 2) {
+        document.getElementById('statusMsg').innerText = "⏳ Chưa đủ 2 người chơi. Đang chờ đối thủ...";
+        document.getElementById('timerTxt').innerText = "⏱️ CHỜ NGƯỜI";
+        // Giả lập sau 3s có P2 vào
+        setTimeout(() => {
+          playerCount = 2;
+          checkRoomReadyState();
+        }, 3000);
+      } else {
+        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người chơi! Bắt đầu đếm ngược 15s!";
+        start15sTimer();
+      }
+    }
+
+    // --- VÒNG ĐẤU 15S OẮN TÙ TÌ ---
+    function start15sTimer() {
+      if (playerCount < 2) return; // Khóa cứng khi chưa đủ 2 người
+      
+      isGameRunning = true;
+      timer = 15;
+      myChoice = null;
+      document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
+      clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        timer--;
+        document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
+
+        if (timer <= 0) {
+          clearInterval(timerInterval);
+          if (!myChoice && role === 'player') {
+            const choices = ['rock', 'paper', 'scissors'];
+            myChoice = choices[Math.floor(Math.random() * 3)];
+            document.getElementById('statusMsg').innerText = "⚠️ Tự động chọn Búa/Bao/Kéo ngẫu nhiên!";
+          }
+          resolveRPS();
+        }
+      }, 1000);
+    }
+
+    function chooseRPS(choice) {
+      if (!isGameRunning) return;
+      myChoice = choice;
+      document.getElementById('statusMsg').innerText = "✅ Đã chốt đòn! Chờ hết 15s...";
+    }
+
+    function resolveRPS() {
+      const choices = ['rock', 'paper', 'scissors'];
+      const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
+      const oppChoice = choices[Math.floor(Math.random() * 3)];
+
+      document.getElementById('handP1').innerText = icons[myChoice || 'rock'];
+      document.getElementById('handP2').innerText = icons[oppChoice];
+
+      // Giả lập có người bấm trúng dây chết -> NỔ & RESET
+      const isDeadTriggered = Math.random() < 0.3; // 30% xác suất nổ dây chết
+
+      if (isDeadTriggered) {
+        document.getElementById('statusMsg').innerText = "💥 DÂY CHẾT BỊ CẮT! NGƯỜI CHƠI BỊ NỔ!";
+        addChatMessage("Hệ thống", "💥 Người chơi đã NỔ! Reset lại toàn bộ bàn đấu...");
+        
+        // Đếm ngược 10s sau khi chết rồi RESET
+        start10sPreparation(true);
+      } else {
+        document.getElementById('statusMsg').innerText = "🎉 Hoàn tất lượt đấu! Chuẩn bị lượt tiếp...";
+        start10sPreparation(false);
+      }
+    }
+
+    function start10sPreparation(shouldReset) {
+      let prepTime = 10;
+      document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
+      
+      const prepInterval = setInterval(() => {
+        prepTime--;
+        document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
+        
+        if (prepTime <= 0) {
+          clearInterval(prepInterval);
+          if (shouldReset) {
+            // Reset về ban đầu khi có người chết
+            if (role === 'player') {
+              openDeadWireModal();
+            } else {
+              resetGameArena();
+              checkRoomReadyState();
+            }
+          } else {
+            // Tiếp tục lượt đấu mới
+            start15sTimer();
+          }
+        }
+      }, 1000);
+    }
+
+    // --- XIN ĐỔI CHỖ VÀ RESET ---
+    function requestToPlay() {
+      addChatMessage("Bạn", "Đã gửi yêu cầu xin làm Người chơi...");
+      setTimeout(() => {
+        if (role === 'player') {
+          document.getElementById('swapRequestModal').style.display = 'flex';
+        } else {
+          alert("Người chơi đã ĐỒNG Ý đổi chỗ! Bàn đấu sẽ được Reset ban đầu!");
+          role = 'player';
+          enterBattleRoom(currentRoomId, 'player', false);
+        }
+      }, 1000);
+    }
+
+    function acceptSwap(isAccepted) {
+      document.getElementById('swapRequestModal').style.display = 'none';
+      if (isAccepted) {
+        addChatMessage("Hệ thống", "Đã đổi người chơi! Tiến hành Reset bàn đấu...");
+        role = 'spectator';
+        enterBattleRoom(currentRoomId, 'spectator', false);
+      } else {
+        addChatMessage("Hệ thống", "Từ chối yêu cầu đổi chỗ.");
+      }
+    }
+
+    // --- CHAT & EMOTE ---
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addChatMessage("Bạn", text);
+      input.value = '';
+    }
+
+    function addChatMessage(sender, text) {
+      const chatBox = document.getElementById('chatBox');
+      const msgItem = document.createElement('div');
+      msgItem.className = 'chat-msg-item';
+      msgItem.innerHTML = `<b>${sender}:</b> ${text}`;
+      chatBox.appendChild(msgItem);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendEmote(emoji) {
+      const arena = document.getElementById('arenaBox');
+      const pop = document.createElement('div');
+      pop.className = 'emote-pop';
+      pop.innerText = emoji;
+      pop.style.left = (Math.random() * 60 + 20) + '%';
+      pop.style.top = (Math.random() * 40 + 30) + '%';
+      arena.appendChild(pop);
+      setTimeout(() => pop.remove(), 1500);
+    }
+
     function leaveBattle() {
       clearInterval(timerInterval);
       document.getElementById('screenBattle').classList.remove('active');
       document.getElementById('screenMenu').classList.add('active');
       document.getElementById('roleTxt').innerText = "Chưa vào phòng";
+      resetGameArena();
     }
   </script>
 </body>
