@@ -1,363 +1,1021 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây Online</title>
-  <style>
-    :root {
-      --primary-blue: #2980b9;
-      --primary-red: #c0392b;
-      --bg-sky: #74b9ff;
-      --panel-bg: rgba(20, 20, 35, 0.85);
-      --gold: #f1c40f;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oẳn Tù Tì Cắt Dây Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-a:#5ec6ff; --sky-b:#8a7bff;
+    --navy-deep:#0c1330; --navy-card:#121a3d; --navy-card-2:#182252;
+    --gold:#ffc93c; --gold-deep:#e8a80f;
+    --p1:#2f8fe0; --p1-deep:#1c5fa3;
+    --p2:#e14b3f; --p2-deep:#a9291f;
+    --cta:#ff8a1e; --cta-deep:#d96700;
+    --green:#33c47a; --green-deep:#1f8c56;
+    --ink:#eef2ff; --ink-dim:#a9b3d6;
+    --radius-lg:22px; --radius-md:14px; --radius-sm:9px;
+  }
+  *{box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; font-family:'Baloo 2','Fredoka',sans-serif; color:var(--ink);
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255,255,255,.25), transparent 55%),
+      linear-gradient(160deg, var(--sky-a), var(--sky-b) 60%, #6f5ce6 100%);
+    min-height:100vh; display:flex; justify-content:center; align-items:center;
+    overflow:hidden; padding:14px;
+  }
+  .stage{
+    width:min(1080px, 100%); height:min(620px, 96vh);
+    background:linear-gradient(180deg, var(--navy-card) 0%, var(--navy-deep) 100%);
+    border-radius:26px; border:5px solid #0a0f24;
+    box-shadow:0 24px 60px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.04);
+    position:relative; overflow:hidden;
+  }
+  .screen{position:absolute; inset:0; display:none; flex-direction:column;}
+  .screen.active{display:flex;}
+  ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:#3a4576; border-radius:6px;}
 
-    * { box-sizing: border-box; user-select: none; }
-    body {
-      margin: 0; font-family: 'Arial Round MT Bold', 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #74b9ff, #a29bfe);
-      height: 100vh; display: flex; justify-content: center; align-items: center;
-      color: #fff; overflow: hidden;
-    }
+  /* ---------- Reusable bits ---------- */
+  .pill{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:30px; padding:6px 14px; display:flex; align-items:center; gap:6px; font-weight:600;}
+  .btn{border:none; cursor:pointer; font-family:inherit; font-weight:700; border-radius:14px; transition:transform .12s ease, filter .12s ease;}
+  .btn:hover{filter:brightness(1.08);} .btn:active{transform:scale(.96);}
+  .btn:disabled{opacity:.45; cursor:not-allowed; filter:none; transform:none;}
+  .btn-cta{background:linear-gradient(180deg, var(--cta), var(--cta-deep)); color:#fff; box-shadow:0 4px 0 #8f4400, 0 6px 14px rgba(0,0,0,.35);}
+  .btn-green{background:linear-gradient(180deg, var(--green), var(--green-deep)); color:#fff; box-shadow:0 4px 0 #114f2f;}
+  .btn-blue{background:linear-gradient(180deg, var(--p1), var(--p1-deep)); color:#fff; box-shadow:0 4px 0 #0f3763;}
+  .btn-red{background:linear-gradient(180deg, var(--p2), var(--p2-deep)); color:#fff; box-shadow:0 4px 0 #6b140e;}
+  .btn-ghost{background:rgba(255,255,255,.08); color:var(--ink); border:1px solid rgba(255,255,255,.14);}
+  .backbtn{position:absolute; top:16px; left:16px; z-index:5; width:38px; height:38px; border-radius:50%; background:rgba(0,0,0,.35); color:#fff; font-size:1.2rem; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.15);}
+  .toast{position:absolute; left:50%; top:18px; transform:translateX(-50%); background:rgba(10,14,30,.92); border:1px solid var(--gold); color:#fff; padding:10px 20px; border-radius:14px; font-weight:600; z-index:200; opacity:0; pointer-events:none; transition:opacity .25s, top .25s;}
+  .toast.show{opacity:1; top:14px;}
+  h1,h2,h3{margin:0; font-family:'Baloo 2',sans-serif;}
 
-    .game-screen {
-      width: 1000px; height: 580px; background: #1e1e2f; border-radius: 20px;
-      border: 6px solid #2f3542; box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-      position: relative; display: flex; flex-direction: column; justify-content: space-between;
-      padding: 15px; background: radial-gradient(circle, #2c3e50 0%, #0f172a 100%);
-    }
+  /* ---------- HOME ---------- */
+  #screen-home{padding:16px 20px;}
+  .home-top{display:flex; justify-content:space-between; align-items:center;}
+  .avatar-block{display:flex; align-items:center; gap:10px;}
+  .avatar-circle{width:52px; height:52px; border-radius:50%; background:linear-gradient(180deg,#8ec8ff,#4a7fe0); display:flex; align-items:center; justify-content:center; font-size:1.6rem; border:3px solid var(--gold); position:relative;}
+  .lvl-badge{position:absolute; bottom:-6px; right:-6px; background:var(--gold); color:#442c00; font-size:.62rem; font-weight:800; padding:1px 6px; border-radius:8px; border:2px solid var(--navy-deep);}
+  .home-name{font-weight:700; font-size:1rem;}
+  .stat-row{display:flex; gap:8px; margin-top:4px;}
+  .stat-chip{font-size:.78rem; color:var(--ink-dim); display:flex; align-items:center; gap:4px;}
+  .stat-chip b{color:var(--gold); font-weight:700;}
+  .icon-btn{width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:1.1rem; cursor:pointer; margin-left:8px;}
 
-    /* Top Bar Header */
-    .header-bar { display: flex; justify-content: space-between; align-items: center; }
-    .user-profile { background: #2f3640; padding: 6px 15px; border-radius: 30px; border: 2px solid #f1c40f; font-weight: bold;}
-    .timer-badge { background: #e74c3c; font-size: 1.4rem; padding: 6px 20px; border-radius: 20px; font-weight: bold; border: 2px solid #fff; }
+  .home-title{text-align:center; margin:6px 0 14px;}
+  .home-title .line1{font-size:1.9rem; font-weight:800; color:var(--gold); text-shadow:0 3px 0 #7a5300, 0 6px 14px rgba(0,0,0,.4); letter-spacing:.5px;}
+  .home-title .line2{font-size:2.3rem; font-weight:800; background:linear-gradient(180deg,#fff,#bcd4ff); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 3px 0 rgba(0,60,140,.4); letter-spacing:1px;}
 
-    /* Battle Arena Layout */
-    .arena { display: flex; justify-content: space-between; align-items: center; height: 320px; position: relative; }
-    .player-side { width: 38%; height: 100%; background: var(--panel-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; align-items: center; border: 3px solid #555; }
-    .player-side.p1 { border-color: #3498db; }
-    .player-side.p2 { border-color: #e74c3c; }
-    
-    .player-info { width: 100%; display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
-    .wires-list { width: 100%; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-    
-    .wire-item {
-      height: 22px; width: 100%; background: #34495e; border-radius: 10px; border: none; color: #fff;
-      font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
-    }
-    .p1 .wire-item { background: #2980b9; }
-    .p2 .wire-item { background: #c0392b; }
-    .wire-item.cut { background: #555 !important; color: #888; text-decoration: line-through; }
-    .wire-item:disabled { opacity: 0.7; cursor: not-allowed; }
+  .mode-row{display:flex; gap:16px; flex:1; min-height:0;}
+  .mode-card{flex:1; border-radius:var(--radius-lg); padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; cursor:pointer; position:relative; overflow:hidden; border:2px solid rgba(255,255,255,.12);}
+  .mode-card.online{background:radial-gradient(circle at 30% 20%, #2f7fd6, #123a72 75%);}
+  .mode-card.friend{background:radial-gradient(circle at 70% 20%, #ffb238, #9a5b00 80%);}
+  .mode-card:active{transform:scale(.98);}
+  .mode-icon{font-size:2.6rem;}
+  .mode-title{font-size:1.35rem; font-weight:800; letter-spacing:.5px;}
+  .mode-sub{font-size:.78rem; color:rgba(255,255,255,.85); text-align:center;}
+  .mode-card .room-tag{position:absolute; top:12px; right:12px; background:rgba(0,0,0,.35); padding:4px 10px; border-radius:20px; font-size:.7rem;}
 
-    .vs-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-    .rps-display { font-size: 3rem; display: flex; gap: 10px; }
+  .util-row{display:flex; gap:10px; margin:12px 0 4px;}
+  .util-btn{flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border-radius:14px; font-size:.82rem;}
+  .util-btn.quest{background:linear-gradient(180deg,#3ecf7a,#1c8a4d);}
+  .util-btn.event{background:linear-gradient(180deg,#c96bff,#7a2fc9);}
 
-    /* Controls & Bet Section */
-    .controls-panel { background: var(--panel-bg); border-radius: 15px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .rps-btn-group { display: flex; gap: 10px; }
-    .rps-btn { font-size: 1.8rem; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; background: #f1c40f; transition: 0.2s; }
-    .rps-btn:hover { transform: scale(1.1); }
+  .bottom-nav{display:flex; justify-content:space-around; padding-top:10px; border-top:1px solid rgba(255,255,255,.08);}
+  .nav-item{display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.68rem; color:var(--ink-dim); cursor:pointer;}
+  .nav-item .ic{font-size:1.25rem;}
 
-    .bet-box { display: flex; gap: 10px; align-items: center; background: #111; padding: 8px; border-radius: 10px; }
-    .bet-btn { background: #e67e22; border: none; color: #fff; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+  /* ---------- MODALS ---------- */
+  .modal-overlay{position:absolute; inset:0; background:rgba(4,6,18,.72); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; z-index:150;}
+  .modal-card{background:linear-gradient(180deg,#1a2454,#101733); border:2px solid var(--gold); border-radius:20px; padding:22px 24px; width:min(420px,90%); max-height:86%; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,.5);}
+  .modal-card h2{font-size:1.2rem; color:var(--gold); text-align:center; margin-bottom:4px;}
+  .modal-sub{text-align:center; color:var(--ink-dim); font-size:.82rem; margin-bottom:16px;}
+  .role-opt{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); margin-bottom:10px; cursor:pointer;}
+  .role-opt:hover{background:rgba(255,255,255,.09);}
+  .role-opt .ic{font-size:1.6rem;}
+  .role-opt .txt b{display:block; font-size:.95rem;}
+  .role-opt .txt span{font-size:.72rem; color:var(--ink-dim);}
 
-    /* Modal / Role Choice Overlay */
-    .overlay {
-      position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85);
-      border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
-    }
-    .modal-card { background: #2c3e50; padding: 30px; border-radius: 15px; text-align: center; border: 3px solid #f1c40f; }
-    .action-btn { background: #2ecc71; color: white; border: none; padding: 10px 20px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; margin: 5px; font-weight: bold; }
-  </style>
+  .tabbar{display:flex; gap:6px; margin-bottom:14px; background:rgba(0,0,0,.25); border-radius:12px; padding:4px;}
+  .tabbar .tab{flex:1; text-align:center; padding:8px; border-radius:9px; cursor:pointer; font-size:.85rem; font-weight:700; color:var(--ink-dim);}
+  .tabbar .tab.active{background:var(--cta); color:#fff;}
+
+  .room-list{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; margin-bottom:10px;}
+  .room-row{display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,.05); padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.08);}
+  .room-row .rinfo{font-size:.8rem;} .room-row .rinfo b{display:block; font-size:.9rem;}
+  .room-row .rtag{font-size:.68rem; color:var(--ink-dim);}
+
+  .code-display{text-align:center; font-size:2rem; letter-spacing:8px; font-weight:800; color:var(--gold); background:rgba(0,0,0,.3); border-radius:14px; padding:14px; margin:10px 0;}
+  .code-input{width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:rgba(0,0,0,.3); color:#fff; font-size:1.3rem; text-align:center; letter-spacing:6px; font-weight:700; margin-bottom:12px;}
+  .code-input::placeholder{color:#5a6493; letter-spacing:normal; font-size:.9rem;}
+
+  .wire-picker-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:14px 0;}
+  .wp-btn{aspect-ratio:1; border-radius:12px; background:#2a3568; border:2px solid transparent; color:#fff; font-weight:700; font-size:.95rem; cursor:pointer;}
+  .wp-btn.sel{background:var(--gold); color:#3b2600; border-color:#fff;}
+
+  .spinner{width:46px; height:46px; border-radius:50%; border:5px solid rgba(255,255,255,.15); border-top-color:var(--gold); animation:spin 1s linear infinite; margin:10px auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- ARENA ---------- */
+  #screen-arena{padding:14px 18px;}
+  .arena-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .status-line{font-weight:700; color:var(--gold); font-size:.95rem; text-align:center; flex:1;}
+  .timer-badge{background:linear-gradient(180deg,#ff6a5a,#c22c1e); font-size:1.15rem; padding:6px 18px; border-radius:20px; font-weight:800; border:2px solid rgba(255,255,255,.4); min-width:58px; text-align:center;}
+
+  .arena{display:flex; justify-content:space-between; align-items:stretch; gap:12px; flex:1; min-height:0;}
+  .side{width:37%; border-radius:18px; padding:10px; display:flex; flex-direction:column; border:3px solid #444; background:rgba(255,255,255,.04); min-height:0;}
+  .side.p1side{border-color:var(--p1);} .side.p2side{border-color:var(--p2);}
+  .side.eliminated{opacity:.35; filter:grayscale(.6);}
+  .side-head{display:flex; justify-content:space-between; align-items:center; font-size:.78rem; margin-bottom:6px;}
+  .side-head b{font-size:.85rem; display:block;}
+  .secret-lock{font-size:.68rem; color:var(--ink-dim);}
+  .wires{display:grid; grid-template-columns:repeat(2,1fr); gap:5px; overflow-y:auto; flex:1; align-content:start;}
+  .wires.zoomed{grid-template-columns:repeat(3,1fr); gap:8px;}
+  .wire{border:none; border-radius:10px; color:#fff; font-size:.72rem; font-weight:700; padding:8px 4px; cursor:pointer; text-align:center;}
+  .wires.zoomed .wire{padding:16px 4px; font-size:.85rem; border-radius:12px;}
+  .p1side .wire{background:linear-gradient(180deg,#3d9bef,var(--p1-deep));}
+  .p2side .wire{background:linear-gradient(180deg,#ef6155,var(--p2-deep));}
+  .wire.cut{background:#3a4160 !important; color:#7680a6; text-decoration:line-through; cursor:not-allowed;}
+  .wire:disabled{cursor:not-allowed;}
+  .wire.dead-reveal{background:repeating-linear-gradient(45deg,#ff5545,#ff5545 6px,#8a1a12 6px,#8a1a12 12px) !important; animation:shake .4s;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-4px);}75%{transform:translateX(4px);}}
+
+  .vs-mid{width:22%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;}
+  .vs-mid h1{color:var(--gold); font-size:1.3rem;}
+  .rps-emo{font-size:2.2rem; display:flex; gap:14px;}
+  .rps-emo span{background:rgba(255,255,255,.06); border-radius:50%; width:52px; height:52px; display:flex; align-items:center; justify-content:center;}
+  .pool-line{font-size:.68rem; color:var(--ink-dim); text-align:center; margin-top:4px;}
+
+  .controls{margin-top:10px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+  .rps-group{display:flex; gap:8px;}
+  .rps-btn{font-size:1.5rem; width:48px; height:48px; border-radius:50%; border:none; cursor:pointer; background:linear-gradient(180deg,var(--gold),var(--gold-deep)); box-shadow:0 4px 0 #7a5300;}
+  .rps-btn.picked{outline:3px solid #fff;}
+  .bet-panel{display:flex; gap:6px; align-items:center; background:rgba(0,0,0,.28); padding:7px 10px; border-radius:14px; flex-wrap:wrap;}
+  .bet-panel .lbl{font-size:.72rem; color:var(--ink-dim);}
+  .bet-btn{font-size:.72rem; padding:7px 10px; border-radius:9px;}
+  .seat-open-btn{font-size:.78rem; padding:9px 14px;}
+
+  .queue-strip{font-size:.68rem; color:var(--ink-dim); text-align:center; margin-top:4px;}
+</style>
 </head>
 <body>
 
-<div class="game-screen">
-  <!-- Top Bar -->
-  <div class="header-bar">
-    <div class="user-profile">💰 Xu: <span id="user-coins">100000</span> | Vai trò: <span id="user-role">Khán giả</span></div>
-    <div class="timer-badge" id="timer">10s</div>
-    <div style="font-weight: bold; color: #f1c40f;" id="game-status">Đang chờ người chơi...</div>
-  </div>
+<div class="stage">
 
-  <!-- Arena -->
-  <div class="arena">
-    <!-- Player 1 -->
-    <div class="player-side p1">
-      <div class="player-info">
-        <span id="p1-name">🔴 P1: Trống</span>
-        <span id="p1-bets">Cược: 0 Xu</span>
+  <!-- ================= HOME ================= -->
+  <div class="screen active" id="screen-home">
+    <div class="home-top">
+      <div class="avatar-block">
+        <div class="avatar-circle">🧑‍🚀<span class="lvl-badge">Lv.15</span></div>
+        <div>
+          <div class="home-name">Player_Pro</div>
+          <div class="stat-row">
+            <div class="stat-chip">🪙 <b id="home-coins">100000</b></div>
+            <div class="stat-chip">💎 <b id="home-gems">250</b></div>
+          </div>
+        </div>
       </div>
-      <div class="wires-list" id="p1-wires"></div>
-    </div>
-
-    <!-- VS Display -->
-    <div class="vs-center">
-      <h1 style="margin: 0; color: #f1c40f;">VS</h1>
-      <div class="rps-display">
-        <span id="p1-move">❓</span>
-        <span id="p2-move">❓</span>
+      <div style="display:flex;">
+        <div class="icon-btn" onclick="toast('Cài đặt: đang phát triển')">⚙️</div>
+        <div class="icon-btn" onclick="toast('Hộp thư trống')">✉️</div>
       </div>
     </div>
 
-    <!-- Player 2 -->
-    <div class="player-side p2">
-      <div class="player-info">
-        <span id="p2-name">🔵 P2: Trống</span>
-        <span id="p2-bets">Cược: 0 Xu</span>
+    <div class="home-title">
+      <div class="line1">OẲN TÙ TÌ ✌️</div>
+      <div class="line2">CẮT DÂY</div>
+    </div>
+
+    <div class="mode-row">
+      <div class="mode-card online" onclick="openOnlineRoleModal()">
+        <div class="mode-icon">🌐</div>
+        <div class="mode-title">CHƠI ONLINE</div>
+        <div class="mode-sub">Ghép ngẫu nhiên hoặc chọn phòng đang mở</div>
       </div>
-      <div class="wires-list" id="p2-wires"></div>
+      <div class="mode-card friend" onclick="openFriendModal()">
+        <div class="mode-icon">🤝</div>
+        <div class="mode-title">CHƠI VỚI BẠN</div>
+        <div class="mode-sub">Tạo phòng riêng hoặc nhập mã để vào</div>
+        <div class="room-tag" id="friend-room-tag">Phòng bạn: 8899</div>
+      </div>
+    </div>
+
+    <div class="util-row">
+      <div class="util-btn quest btn" onclick="toast('Chưa có nhiệm vụ mới')">✅ Nhiệm vụ hằng ngày</div>
+      <div class="util-btn event btn" onclick="toast('Sự kiện sẽ sớm ra mắt')">🎁 Sự kiện</div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="nav-item" onclick="toast('Cửa hàng đang cập nhật')"><span class="ic">🏪</span>Cửa Hàng</div>
+      <div class="nav-item" onclick="toast('Bảng xếp hạng đang cập nhật')"><span class="ic">🏆</span>Xếp Hạng</div>
+      <div class="nav-item" onclick="toast('Hồ sơ của bạn')"><span class="ic">👤</span>Hồ Sơ</div>
+      <div class="nav-item" onclick="toast('Cộng đồng đang cập nhật')"><span class="ic">👥</span>Cộng Đồng</div>
     </div>
   </div>
 
-  <!-- Controls Panel -->
-  <div class="controls-panel">
-    <!-- RPS Buttons -->
-    <div class="rps-btn-group">
-      <button class="rps-btn" onclick="chooseRPS('rock')">✊</button>
-      <button class="rps-btn" onclick="chooseRPS('paper')">✋</button>
-      <button class="rps-btn" onclick="chooseRPS('scissors')">✌️</button>
+  <!-- ================= ARENA ================= -->
+  <div class="screen" id="screen-arena">
+    <div class="backbtn" onclick="leaveArena()">←</div>
+    <div class="arena-top">
+      <div class="pill">🪙 <b id="arena-coins">100000</b></div>
+      <div class="status-line" id="game-status">Đang chờ người chơi...</div>
+      <div class="timer-badge" id="timer">--</div>
     </div>
 
-    <!-- Spectator Betting Options -->
-    <div class="bet-box" id="spectator-tools">
-      <span>Đặt Cược:</span>
-      <button class="bet-btn" onclick="placeBet('P1', 100)">P1 (100 xu)</button>
-      <button class="bet-btn" onclick="placeBet('P2', 100)">P2 (100 xu)</button>
-      <button class="bet-btn" style="background:#8e44ad" onclick="predictWinner('P1')">Đoán P1 Thắng Ván (x3)</button>
-      <button class="bet-btn" style="background:#8e44ad" onclick="predictWinner('P2')">Đoán P2 Thắng Ván (x3)</button>
+    <div class="arena">
+      <div class="side p1side" id="p1side">
+        <div class="side-head">
+          <span id="p1-name">🔴 P1: Trống</span>
+          <span class="secret-lock" id="p1-lock">🔒 chưa chọn dây chết</span>
+        </div>
+        <div class="wires" id="p1-wires"></div>
+        <div class="pool-line" id="p1-pool">Cược cho P1: 0 xu</div>
+      </div>
+
+      <div class="vs-mid">
+        <h1>VS</h1>
+        <div class="rps-emo"><span id="p1-move">❓</span><span id="p2-move">❓</span></div>
+        <div id="mid-note" style="font-size:.68rem;color:var(--ink-dim);text-align:center;"></div>
+      </div>
+
+      <div class="side p2side" id="p2side">
+        <div class="side-head">
+          <span id="p2-name">🔵 P2: Trống</span>
+          <span class="secret-lock" id="p2-lock">🔒 chưa chọn dây chết</span>
+        </div>
+        <div class="wires" id="p2-wires"></div>
+        <div class="pool-line" id="p2-pool">Cược cho P2: 0 xu</div>
+      </div>
     </div>
+
+    <div class="controls">
+      <div class="rps-group" id="rps-group">
+        <button class="rps-btn" onclick="chooseRPS('rock')">✊</button>
+        <button class="rps-btn" onclick="chooseRPS('paper')">✋</button>
+        <button class="rps-btn" onclick="chooseRPS('scissors')">✌️</button>
+      </div>
+
+      <div class="bet-panel" id="spectator-tools" style="display:none;">
+        <span class="lbl">Cược ván này:</span>
+        <button class="btn bet-btn btn-blue" onclick="placeRoundBet('P1',100)">P1 100 (x2)</button>
+        <button class="btn bet-btn btn-red" onclick="placeRoundBet('P2',100)">P2 100 (x2)</button>
+        <span class="lbl">| Đoán người thắng trận:</span>
+        <button class="btn bet-btn btn-green" onclick="predictWinner('P1')">P1 x3</button>
+        <button class="btn bet-btn btn-green" onclick="predictWinner('P2')">P2 x3</button>
+      </div>
+
+      <button class="btn btn-cta seat-open-btn" id="take-seat-btn" style="display:none;" onclick="takeEmptySeat()">🎮 Vào ghế trống</button>
+    </div>
+    <div class="queue-strip" id="queue-strip"></div>
   </div>
 
-  <!-- Role Selection Overlay -->
-  <div class="overlay" id="role-modal">
-    <div class="modal-card">
-      <h2>OẲN TÙ TÌ CẮT DÂY</h2>
-      <p>Chọn vai trò tham gia trận đấu:</p>
-      <button class="action-btn" onclick="selectRole('player')">🎮 Vào Ghế Người Chơi</button>
-      <button class="action-btn" style="background: #3498db;" onclick="selectRole('spectator')">👁️ Làm Khán Giả (-10 xu/lượt)</button>
-    </div>
-  </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
+<!-- ========== MODAL LAYER ========== -->
+<div id="modal-layer"></div>
+
 <script>
-  // Game State
-  let coins = 100000;
-  let role = 'spectator'; // 'p1', 'p2', 'spectator'
-  let p1SecretDeadWire = -1, p2SecretDeadWire = -1;
-  let p1Move = null, p2Move = null;
-  let p1Bets = 0, p2Bets = 0;
-  let myBet = { target: null, amount: 0, isMatchBet: false };
-  let currentRoundWinner = null; // 'P1' or 'P2'
+/* =========================================================
+   AUDIO ENGINE — layered, soft ambient / rising tension / climax
+   ========================================================= */
+let audioCtx = null;
+function ac(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
 
-  // Audio Context (Synth Audio - Không dùng mp3 ngoài)
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  function playSound(type) {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    
-    if (type === 'ambient') {
-      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-    } else if (type === 'tension') {
-      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
-      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      osc.start(); osc.stop(audioCtx.currentTime + 0.5);
-    } else if (type === 'boom') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 1);
-      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      osc.start(); osc.stop(audioCtx.currentTime + 1);
+let ambientNodes = null;
+function startAmbient(){
+  stopAmbient();
+  const c = ac();
+  const now = c.currentTime;
+  const o1 = c.createOscillator(), o2 = c.createOscillator();
+  const g = c.createGain();
+  o1.type='sine'; o2.type='sine';
+  o1.frequency.value = 196; o2.frequency.value = 246.94; // soft open fifth-ish pad
+  g.gain.value = 0;
+  o1.connect(g); o2.connect(g); g.connect(c.destination);
+  g.gain.linearRampToValueAtTime(0.028, now+1.2);
+  o1.start(); o2.start();
+  ambientNodes = {o1,o2,g};
+}
+function stopAmbient(){
+  if(!ambientNodes) return;
+  const c = ac(); const now = c.currentTime;
+  try{
+    ambientNodes.g.gain.linearRampToValueAtTime(0, now+0.5);
+    ambientNodes.o1.stop(now+0.55); ambientNodes.o2.stop(now+0.55);
+  }catch(e){}
+  ambientNodes = null;
+}
+
+let tensionNodes = null;
+function startTension(durationSec){
+  stopTension();
+  const c = ac(); const now = c.currentTime;
+  const osc = c.createOscillator(); const g = c.createGain();
+  osc.type='triangle';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.linearRampToValueAtTime(520, now+durationSec);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.linearRampToValueAtTime(0.05, now+0.3);
+  g.gain.linearRampToValueAtTime(0.09, now+durationSec);
+  osc.connect(g); g.connect(c.destination);
+  osc.start();
+  tensionNodes = {osc,g};
+  // soft heartbeat ticks that speed up
+  let tick = 0;
+  tensionNodes.tickInt = setInterval(()=>{
+    tick++;
+    const t = c.currentTime;
+    const b = c.createOscillator(); const bg = c.createGain();
+    b.type='sine'; b.frequency.value = 90;
+    bg.gain.setValueAtTime(0.09, t); bg.gain.exponentialRampToValueAtTime(0.001, t+0.12);
+    b.connect(bg); bg.connect(c.destination);
+    b.start(); b.stop(t+0.13);
+  }, Math.max(220, 700 - tick*40));
+}
+function stopTension(){
+  if(!tensionNodes) return;
+  const c = ac(); const now = c.currentTime;
+  try{ tensionNodes.g.gain.linearRampToValueAtTime(0, now+0.25); tensionNodes.osc.stop(now+0.3);}catch(e){}
+  clearInterval(tensionNodes.tickInt);
+  tensionNodes = null;
+}
+
+function playSafeSnip(){
+  const c = ac(); const now = c.currentTime;
+  const o = c.createOscillator(); const g = c.createGain();
+  o.type='square'; o.frequency.setValueAtTime(900, now); o.frequency.exponentialRampToValueAtTime(300, now+0.12);
+  g.gain.setValueAtTime(0.06, now); g.gain.exponentialRampToValueAtTime(0.0001, now+0.15);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(now+0.16);
+}
+
+function playClimaxBoom(){
+  stopTension();
+  const c = ac(); const now = c.currentTime;
+  // low boom
+  const o = c.createOscillator(); const g = c.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(160, now); o.frequency.exponentialRampToValueAtTime(18, now+0.9);
+  g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.0001, now+1.0);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(now+1.0);
+  // noise burst
+  const bufferSize = c.sampleRate*0.5;
+  const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++){ data[i] = (Math.random()*2-1) * (1 - i/bufferSize); }
+  const noise = c.createBufferSource(); noise.buffer = buffer;
+  const ng = c.createGain(); ng.gain.setValueAtTime(0.4, now);
+  noise.connect(ng); ng.connect(c.destination); noise.start();
+}
+
+function playChime(up){
+  const c = ac(); const now = c.currentTime;
+  const freqs = up ? [523,659,784] : [392,330,262];
+  freqs.forEach((f,i)=>{
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type='sine'; o.frequency.value = f;
+    const t0 = now + i*0.09;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.07, t0+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+0.35);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0+0.4);
+  });
+}
+
+function playClick(){
+  const c = ac(); const now = c.currentTime;
+  const o = c.createOscillator(); const g = c.createGain();
+  o.type='sine'; o.frequency.value = 520;
+  g.gain.setValueAtTime(0.04, now); g.gain.exponentialRampToValueAtTime(0.0001, now+0.08);
+  o.connect(g); g.connect(c.destination); o.start(); o.stop(now+0.09);
+}
+
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
+let coins = 100000;
+let myRole = null;   // 'p1' | 'p2' | 'spectator' | null
+let names = ['Minh Anh','Gia Bảo','Thu Hà','Quốc Huy','Bảo Trân','Đức Anh','Khánh Vy','Hoàng Long'];
+function randomName(){ return names[Math.floor(Math.random()*names.length)]; }
+
+const seats = {
+  p1: null, // {name, isBot, secretWire, wiresCut:[], connected:true, isMe:false}
+  p2: null
+};
+let spectators = []; // {name,isBot}
+let currentRoundWinner = null;
+let p1Move=null, p2Move=null;
+let phase = 'idle'; // idle | secretpick | rps | reveal | cut | ended
+let roundBetP1 = 0, roundBetP2 = 0; // this-round spectator round bets total
+let predictBetP1 = 0, predictBetP2 = 0; // whole-match prediction bets total
+let myRoundBet = null;   // {target, amount}
+let myPredictBet = null; // {target, amount}
+let phaseTimer = null;
+let botMoveTimeout = null;
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._to);
+  t._to = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function syncCoinsUI(){
+  document.getElementById('home-coins').textContent = coins;
+  document.getElementById('arena-coins').textContent = coins;
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(){ document.getElementById('modal-layer').innerHTML=''; }
+function openModal(html){ document.getElementById('modal-layer').innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`; }
+
+/* =========================================================
+   HOME → ONLINE ROLE CHOICE
+   ========================================================= */
+function openOnlineRoleModal(){
+  playClick();
+  openModal(`
+    <div class="modal-card">
+      <h2>CHƠI ONLINE</h2>
+      <div class="modal-sub">Chọn vai trò của bạn trong trận đấu</div>
+      <div class="role-opt" onclick="closeModal(); openMatchmaking('player')">
+        <div class="ic">🎮</div>
+        <div class="txt"><b>Người chơi</b><span>Tham gia cắt dây, không mất xu mỗi trận, nhận 1/2 tổng tiền khán giả cược cho bạn khi thắng</span></div>
+      </div>
+      <div class="role-opt" onclick="closeModal(); openSpectateBrowser()">
+        <div class="ic">👁️</div>
+        <div class="txt"><b>Khán giả</b><span>Xem & đặt cược — mất 10 xu mỗi lượt oẳn tù tì</span></div>
+      </div>
+    </div>
+  `);
+}
+
+/* =========================================================
+   MATCHMAKING (player role) — fake open rooms + random match
+   ========================================================= */
+let fakeRooms = [];
+function genFakeRooms(){
+  fakeRooms = [];
+  const n = 2 + Math.floor(Math.random()*3);
+  for(let i=0;i<n;i++){
+    fakeRooms.push({ code: (1000+Math.floor(Math.random()*9000)).toString(), host: randomName(), waiting: Math.random()<0.7 });
+  }
+}
+function openMatchmaking(){
+  genFakeRooms();
+  openModal(`
+    <div class="modal-card">
+      <h2>GHÉP TRẬN ONLINE</h2>
+      <div class="modal-sub">Vào phòng đang chờ hoặc ghép ngẫu nhiên với người khác</div>
+      <div class="room-list">
+        ${fakeRooms.map(r=>`
+          <div class="room-row">
+            <div class="rinfo"><b>Phòng của ${r.host}</b><span class="rtag">${r.waiting ? 'Đang chờ đối thủ · Mã ' + r.code : 'Đủ người · thử phòng khác'}</span></div>
+            <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" ${r.waiting?'':'disabled'} onclick="closeModal(); joinRoomAsPlayer('${r.host}')">Vào</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-cta" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeModal(); randomMatch()">🎲 Ghép Ngẫu Nhiên</button>
+    </div>
+  `);
+}
+function joinRoomAsPlayer(hostName){
+  startNewSession();
+  myRole='p1';
+  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
+  showArenaWaitingForOpponent(hostName, true);
+}
+function randomMatch(){
+  startNewSession();
+  myRole='p1';
+  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
+  showArenaWaitingForOpponent(null, false);
+}
+function showArenaWaitingForOpponent(hostName, instant){
+  showScreen('screen-arena');
+  renderSeats();
+  setStatus('Đang tìm đối thủ...');
+  setTimer('--');
+  const delay = instant ? 700 : 1500 + Math.random()*1500;
+  setTimeout(()=>{
+    const oppName = hostName || randomName();
+    seats.p2 = { name: oppName, isBot:true, secretWire:null, wiresCut:[], isMe:false };
+    renderSeats();
+    toast(`${oppName} đã vào phòng!`);
+    fillBotSpectators();
+    beginSecretPickPhase();
+  }, delay);
+}
+
+/* =========================================================
+   SPECTATE BROWSER
+   ========================================================= */
+function openSpectateBrowser(){
+  openModal(`
+    <div class="modal-card">
+      <h2>XEM & CƯỢC</h2>
+      <div class="modal-sub">Chọn một trận đang diễn ra để theo dõi và đặt cược</div>
+      <div class="room-list">
+        <div class="room-row">
+          <div class="rinfo"><b>${randomName()} 🆚 ${randomName()}</b><span class="rtag">Đang chọn dây chết</span></div>
+          <button class="btn btn-green" style="padding:8px 14px;font-size:.78rem;" onclick="closeModal(); joinAsSpectator()">Xem</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;font-size:.85rem;" onclick="closeModal(); joinAsSpectator()">Ghép vào trận bất kỳ</button>
+    </div>
+  `);
+}
+function joinAsSpectator(){
+  startNewSession();
+  myRole='spectator';
+  seats.p1 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+  seats.p2 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+  showScreen('screen-arena');
+  document.getElementById('spectator-tools').style.display='flex';
+  renderSeats();
+  fillBotSpectators();
+  beginSecretPickPhase();
+}
+
+/* =========================================================
+   FRIEND ROOM (create / join by code)
+   ========================================================= */
+function openFriendModal(){
+  playClick();
+  openModal(`
+    <div class="modal-card">
+      <h2>CHƠI VỚI BẠN</h2>
+      <div class="tabbar">
+        <div class="tab active" id="tab-create" onclick="switchFriendTab('create')">Tạo phòng</div>
+        <div class="tab" id="tab-join" onclick="switchFriendTab('join')">Nhập mã</div>
+      </div>
+      <div id="friend-tab-body"></div>
+    </div>
+  `);
+  switchFriendTab('create');
+}
+function switchFriendTab(tab){
+  document.getElementById('tab-create').classList.toggle('active', tab==='create');
+  document.getElementById('tab-join').classList.toggle('active', tab==='join');
+  const body = document.getElementById('friend-tab-body');
+  if(tab==='create'){
+    const code = (1000+Math.floor(Math.random()*9000)).toString();
+    body.innerHTML = `
+      <div class="modal-sub">Gửi mã này cho bạn bè để họ tham gia phòng của bạn</div>
+      <div class="code-display">${code}</div>
+      <div id="create-wait-msg" class="modal-sub">Đang chờ bạn bè tham gia…</div>
+      <div class="spinner"></div>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="closeModal()">Huỷ</button>
+    `;
+    clearTimeout(window._friendJoinTimeout);
+    window._friendJoinTimeout = setTimeout(()=>{
+      if(!document.getElementById('create-wait-msg')) return;
+      closeModal();
+      startNewSession();
+      myRole='p1';
+      seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
+      seats.p2 = { name: 'Bạn của bạn', isBot:true, secretWire:null, wiresCut:[], isMe:false };
+      showScreen('screen-arena');
+      renderSeats();
+      toast('Bạn của bạn đã vào phòng!');
+      fillBotSpectators();
+      beginSecretPickPhase();
+    }, 2600 + Math.random()*1800);
+  } else {
+    body.innerHTML = `
+      <div class="modal-sub">Nhập mã phòng 4 chữ số bạn nhận được</div>
+      <input class="code-input" id="join-code-input" maxlength="4" placeholder="0000" inputmode="numeric">
+      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="submitJoinCode()">Vào phòng</button>
+    `;
+  }
+}
+function submitJoinCode(){
+  const v = document.getElementById('join-code-input').value.trim();
+  if(v.length!==4 || isNaN(v)){ toast('Mã phòng gồm 4 chữ số'); return; }
+  closeModal();
+  startNewSession();
+  myRole='p1';
+  seats.p1 = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
+  seats.p2 = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+  showScreen('screen-arena');
+  renderSeats();
+  toast(`Đã vào phòng ${v}`);
+  fillBotSpectators();
+  beginSecretPickPhase();
+}
+
+/* =========================================================
+   SESSION / RENDER
+   ========================================================= */
+function startNewSession(){
+  seats.p1 = null; seats.p2 = null; spectators = [];
+  roundBetP1=0; roundBetP2=0; predictBetP1=0; predictBetP2=0;
+  myRoundBet=null; myPredictBet=null; p1Move=null; p2Move=null;
+  phase='idle'; myRole=null;
+  document.getElementById('spectator-tools').style.display='none';
+  document.getElementById('take-seat-btn').style.display='none';
+  syncCoinsUI();
+  startAmbient();
+}
+function fillBotSpectators(){
+  const n = Math.floor(Math.random()*3); // 0-2 bot spectators
+  for(let i=0;i<n;i++){
+    const bot = { name: randomName()+' 🤖', isBot:true };
+    spectators.push(bot);
+    const target = Math.random()<0.5 ? 'P1':'P2';
+    const amt = 500;
+    if(coins>=0){ // bots don't touch player coins
+      if(target==='P1') roundBetP1 += amt; else roundBetP2 += amt;
     }
   }
-
-  // Initialize Wires
-  function renderWires() {
-    const p1Grid = document.getElementById('p1-wires');
-    const p2Grid = document.getElementById('p2-wires');
-    p1Grid.innerHTML = ''; p2Grid.innerHTML = '';
-
-    for (let i = 1; i <= 10; i++) {
-      p1Grid.innerHTML += `<button class="wire-item" id="p1-w-${i}" onclick="handleWireCut('P1', ${i})">Dây ${i}</button>`;
-      p2Grid.innerHTML += `<button class="wire-item" id="p2-w-${i}" onclick="handleWireCut('P2', ${i})">Dây ${i}</button>`;
+  updatePools();
+  updateQueueStrip();
+}
+function updateQueueStrip(){
+  const el = document.getElementById('queue-strip');
+  const botCount = spectators.filter(s=>s.isBot).length;
+  const humanWaiting = myRole==='spectator' ? 1 : 0;
+  el.textContent = (botCount+humanWaiting)>0 ? `👁️ ${botCount+humanWaiting} khán giả đang xem trận này` : '';
+}
+function seatLabel(seatKey){
+  const s = seats[seatKey];
+  const emoji = seatKey==='p1' ? '🔴' : '🔵';
+  if(!s) return `${emoji} ${seatKey.toUpperCase()}: Trống`;
+  return `${emoji} ${seatKey.toUpperCase()}: ${s.isMe ? 'Bạn' : s.name}`;
+}
+function renderSeats(){
+  document.getElementById('p1-name').textContent = seatLabel('p1');
+  document.getElementById('p2-name').textContent = seatLabel('p2');
+  ['p1','p2'].forEach(k=>{
+    const side = document.getElementById(k+'side');
+    side.classList.toggle('eliminated', !seats[k]);
+    const grid = document.getElementById(k+'-wires');
+    grid.classList.remove('zoomed');
+    grid.innerHTML='';
+    const s = seats[k];
+    for(let i=1;i<=10;i++){
+      const cut = s && s.wiresCut.includes(i);
+      grid.innerHTML += `<button class="wire ${cut?'cut':''}" disabled>Dây ${i}</button>`;
     }
-  }
+    document.getElementById(k+'-lock').textContent = s ? (s.secretWire!==null ? '🔒 đã chọn dây chết' : '⏳ đang chọn...') : '';
+  });
+  document.getElementById('take-seat-btn').style.display = (myRole==='spectator' && (!seats.p1 || !seats.p2)) ? 'inline-block' : 'none';
+}
+function updatePools(){
+  document.getElementById('p1-pool').textContent = `Cược cho P1: ${roundBetP1+predictBetP1} xu`;
+  document.getElementById('p2-pool').textContent = `Cược cho P2: ${roundBetP2+predictBetP2} xu`;
+}
+function setStatus(t){ document.getElementById('game-status').textContent = t; }
+function setTimer(t){ document.getElementById('timer').textContent = t; }
 
-  function selectRole(chosenRole) {
-    document.getElementById('role-modal').style.display = 'none';
-    if (chosenRole === 'player') {
-      role = 'p1';
-      document.getElementById('p1-name').innerText = "🔴 P1: Bạn";
-      document.getElementById('p2-name').innerText = "🔵 P2: Máy (BOT)";
-      // Bot làm khán giả/đối thủ phụ
-      p2SecretDeadWire = Math.floor(Math.random() * 10) + 1;
-      promptSecretWireChoice();
-    } else {
-      role = 'spectator';
-      document.getElementById('p1-name').innerText = "🔴 P1: Máy A";
-      document.getElementById('p2-name').innerText = "🔵 P2: Máy B";
-      p1SecretDeadWire = Math.floor(Math.random() * 10) + 1;
-      p2SecretDeadWire = Math.floor(Math.random() * 10) + 1;
-      startRPSPhase();
+/* =========================================================
+   SECRET WIRE PICK PHASE
+   ========================================================= */
+function beginSecretPickPhase(){
+  phase = 'secretpick';
+  setStatus('Mỗi người chơi chọn 1 dây chết bí mật');
+  setTimer('🔒');
+  document.getElementById('rps-group').style.display = 'none';
+  renderSeats();
+  // bots auto-pick
+  ['p1','p2'].forEach(k=>{
+    if(seats[k] && seats[k].isBot){
+      seats[k].secretWire = 1+Math.floor(Math.random()*10);
     }
-    document.getElementById('user-role').innerText = role.toUpperCase();
+  });
+  if(myRole==='p1' || myRole==='p2'){
+    openWirePickerModal(myRole);
+  } else {
+    proceedIfSecretsReady();
   }
-
-  function promptSecretWireChoice() {
-    let chosen = prompt("Chọn 1 dây chết bí mật cho bạn (từ 1 đến 10):", "5");
-    p1SecretDeadWire = parseInt(chosen) || 1;
+}
+function openWirePickerModal(seatKey){
+  let chosen = null;
+  const render = ()=>{
+    let btns='';
+    for(let i=1;i<=10;i++){
+      btns += `<button class="wp-btn ${chosen===i?'sel':''}" onclick="pickWireBtn(${i})">${i}</button>`;
+    }
+    document.getElementById('wp-grid').innerHTML = btns;
+    document.getElementById('wp-confirm').disabled = chosen===null;
+  };
+  window.pickWireBtn = (i)=>{ chosen=i; playClick(); render(); };
+  window.confirmWirePick = ()=>{
+    if(chosen===null) return;
+    seats[seatKey].secretWire = chosen;
+    closeModal();
+    renderSeats();
+    proceedIfSecretsReady();
+  };
+  openModal(`
+    <div class="modal-card">
+      <h2>CHỌN DÂY CHẾT BÍ MẬT</h2>
+      <div class="modal-sub">Đối thủ sẽ không biết dây nào. Nếu họ cắt trúng dây này, bạn sẽ bị loại xuống làm khán giả.</div>
+      <div class="wire-picker-grid" id="wp-grid"></div>
+      <button class="btn btn-cta" id="wp-confirm" style="width:100%;padding:12px;" disabled onclick="confirmWirePick()">Xác nhận</button>
+    </div>
+  `);
+  render();
+}
+function proceedIfSecretsReady(){
+  if(seats.p1 && seats.p2 && seats.p1.secretWire!==null && seats.p2.secretWire!==null){
+    document.getElementById('rps-group').style.display = 'flex';
     startRPSPhase();
   }
+}
 
-  // Phase 1: 10s Oẳn tù tì
-  function startRPSPhase() {
-    if (role === 'spectator') coins -= 10; // Trừ 10 xu khán giả mỗi lượt
-    updateUI();
+/* =========================================================
+   RPS PHASE (10s)
+   ========================================================= */
+function startRPSPhase(){
+  phase='rps';
+  p1Move=null; p2Move=null;
+  document.getElementById('p1-move').textContent='❓';
+  document.getElementById('p2-move').textContent='❓';
+  document.querySelectorAll('.rps-btn').forEach(b=>b.classList.remove('picked'));
+  setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)');
+  updatePools(); updateQueueStrip();
 
-    let timeLeft = 10;
-    document.getElementById('game-status').innerText = "BƯỚC 1: Chọn Kéo Búa Bao (10s)";
-    
-    let timer = setInterval(() => {
-      document.getElementById('timer').innerText = timeLeft + "s";
-      timeLeft--;
-      if (timeLeft < 0) {
-        clearInterval(timer);
-        if (!p1Move) p1Move = ['rock', 'paper', 'scissors'][Math.floor(Math.random()*3)];
-        if (!p2Move) p2Move = ['rock', 'paper', 'scissors'][Math.floor(Math.random()*3)];
-        revealRPSResult();
-      }
-    }, 1000);
-  }
+  if(myRole==='spectator'){ coins -= 10; syncCoinsUI(); }
 
-  function chooseRPS(move) {
-    if (role === 'p1') p1Move = move;
-    playSound('ambient');
-  }
-
-  // Phase 2: 2s Hiện kết quả
-  function revealRPSResult() {
-    const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
-    document.getElementById('p1-move').innerText = emojis[p1Move];
-    document.getElementById('p2-move').innerText = emojis[p2Move];
-
-    document.getElementById('game-status').innerText = "BƯỚC 2: Kết quả...";
-    
-    // Logic Thắng/Thua RPS
-    if (p1Move === p2Move) {
-      currentRoundWinner = null;
-    } else if (
-      (p1Move === 'rock' && p2Move === 'scissors') ||
-      (p1Move === 'paper' && p2Move === 'rock') ||
-      (p1Move === 'scissors' && p2Move === 'paper')
-    ) {
-      currentRoundWinner = 'P1';
-    } else {
-      currentRoundWinner = 'P2';
+  ['p1','p2'].forEach(k=>{
+    if(seats[k].isBot){
+      clearTimeout(botMoveTimeout);
+      setTimeout(()=>{ if(phase==='rps'){ if(k==='p1') p1Move = randMove(); else p2Move = randMove(); } }, 800+Math.random()*3000);
     }
+  });
 
-    setTimeout(() => {
-      if (currentRoundWinner) {
-        startCuttingPhase();
-      } else {
-        // Hòa, làm lại
-        p1Move = null; p2Move = null;
-        startRPSPhase();
-      }
-    }, 2000);
-  }
+  let t=10;
+  setTimer(t+'s');
+  clearInterval(phaseTimer);
+  phaseTimer = setInterval(()=>{
+    t--;
+    if(t<0){
+      clearInterval(phaseTimer);
+      if(!p1Move) p1Move = randMove();
+      if(!p2Move) p2Move = randMove();
+      revealRPS();
+      return;
+    }
+    setTimer(t+'s');
+  },1000);
+}
+function randMove(){ return ['rock','paper','scissors'][Math.floor(Math.random()*3)]; }
+function chooseRPS(move){
+  if(phase!=='rps') return;
+  if(myRole==='p1') p1Move = move;
+  else if(myRole==='p2') p2Move = move;
+  else return;
+  document.querySelectorAll('.rps-btn').forEach(b=>b.classList.toggle('picked', b.textContent === ({rock:'✊',paper:'✋',scissors:'✌️'})[move]));
+  playClick();
+  toast('Đã chọn! Chờ đối thủ...');
+}
 
-  // Phase 3: 7s Cắt dây
-  function startCuttingPhase() {
-    let timeLeft = 7;
-    document.getElementById('game-status').innerText = `BƯỚC 3: ${currentRoundWinner} Cắt dây đối thủ (7s)`;
-    playSound('tension');
+/* =========================================================
+   REVEAL PHASE (2s)
+   ========================================================= */
+function revealRPS(){
+  phase='reveal';
+  clearInterval(phaseTimer);
+  const emo={rock:'✊',paper:'✋',scissors:'✌️'};
+  document.getElementById('p1-move').textContent = emo[p1Move];
+  document.getElementById('p2-move').textContent = emo[p2Move];
+  setStatus('BƯỚC 2 · Kết quả oẳn tù tì...');
+  setTimer('⏱');
 
-    let timer = setInterval(() => {
-      document.getElementById('timer').innerText = timeLeft + "s";
-      timeLeft--;
-      if (timeLeft < 0) {
-        clearInterval(timer);
-        // Tự động cắt ngẫu nhiên nếu bỏ lượt
-        let targetSide = currentRoundWinner === 'P1' ? 'P2' : 'P1';
-        handleWireCut(targetSide, Math.floor(Math.random() * 10) + 1);
-      }
-    }, 1000);
-  }
+  if(p1Move===p2Move){ currentRoundWinner=null; }
+  else if((p1Move==='rock'&&p2Move==='scissors')||(p1Move==='paper'&&p2Move==='rock')||(p1Move==='scissors'&&p2Move==='paper')){ currentRoundWinner='P1'; }
+  else { currentRoundWinner='P2'; }
 
-  function handleWireCut(targetPlayer, wireNum) {
-    const wireBtn = document.getElementById(`${targetPlayer.toLowerCase()}-w-${wireNum}`);
-    if (wireBtn.classList.contains('cut')) return;
-
-    wireBtn.classList.add('cut');
-    wireBtn.disabled = true;
-
-    let hitDeadWire = false;
-    if (targetPlayer === 'P1' && wireNum === p1SecretDeadWire) hitDeadWire = true;
-    if (targetPlayer === 'P2' && wireNum === p2SecretDeadWire) hitDeadWire = true;
-
-    if (hitDeadWire) {
-      playSound('boom');
-      alert(`💥 BÙM! ${targetPlayer} bị nổ do cắt trúng dây chết #${wireNum}!`);
-      resolveMatchWinner(targetPlayer === 'P1' ? 'P2' : 'P1');
+  setTimeout(()=>{
+    // resolve round bet (x2) — only when there IS a winner (not a tie)
+    if(currentRoundWinner){
+      resolveRoundBet(currentRoundWinner);
+      setTimeout(()=>startCuttingPhase(), 300);
     } else {
-      playSound('ambient');
-      // Tiếp tục vòng chơi mới
-      p1Move = null; p2Move = null;
+      toast('Hòa! Oẳn tù tì lại...');
       startRPSPhase();
     }
+  }, 2000);
+}
+function resolveRoundBet(winnerSeat){
+  if(myRoundBet && myRoundBet.target===winnerSeat){
+    const payout = myRoundBet.amount*2;
+    coins += payout;
+    toast(`🎉 Cược ván đúng! +${payout} xu`);
+    playChime(true);
+    syncCoinsUI();
   }
+  roundBetP1=0; roundBetP2=0; myRoundBet=null;
+  updatePools();
+}
 
-  // Đặt cược cho Khán Giả
-  function placeBet(player, amount) {
-    if (coins < amount) return alert("Không đủ xu!");
-    coins -= amount;
-    if (player === 'P1') p1Bets += amount; else p2Bets += amount;
-    myBet = { target: player, amount: amount, isMatchBet: false };
-    updateUI();
-  }
+/* =========================================================
+   CUTTING PHASE (7s) — winner sees only uncut wires, enlarged
+   ========================================================= */
+function startCuttingPhase(){
+  phase='cut';
+  const loserSeat = currentRoundWinner==='P1' ? 'p2' : 'p1';
+  setStatus(`BƯỚC 3 · ${currentRoundWinner} cắt dây của đối thủ (7s)`);
+  startTension(7);
+  renderCutGrids(loserSeat);
 
-  function predictWinner(player) {
-    let amount = 500;
-    if (coins < amount) return alert("Không đủ xu!");
-    coins -= amount;
-    myBet = { target: player, amount: amount, isMatchBet: true };
-    alert(`Đã cược 500 xu cho ${player} thắng ván (x3)`);
-    updateUI();
-  }
-
-  function resolveMatchWinner(winner) {
-    // Trả thưởng cược
-    if (myBet.target === winner) {
-      let multiplier = myBet.isMatchBet ? 3 : 2;
-      coins += myBet.amount * multiplier;
-      alert(`🎉 Bạn đã thắng cược và nhận được ${myBet.amount * multiplier} xu!`);
+  let t=7;
+  setTimer(t+'s');
+  clearInterval(phaseTimer);
+  phaseTimer = setInterval(()=>{
+    t--;
+    if(t<0){
+      clearInterval(phaseTimer);
+      const s = seats[loserSeat];
+      const remaining = [];
+      for(let i=1;i<=10;i++) if(!s.wiresCut.includes(i)) remaining.push(i);
+      const auto = remaining[Math.floor(Math.random()*remaining.length)];
+      cutWire(loserSeat, auto);
+      return;
     }
+    setTimer(t+'s');
+  },1000);
+}
+function renderCutGrids(loserSeat){
+  const winnerRole = currentRoundWinner==='P1' ? 'p1' : 'p2';
+  const iAmCutter = myRole===winnerRole;
 
-    // Chia 1/2 tổng xu cược cho người chơi thắng
-    if (role === winner.toLowerCase()) {
-      let totalPool = p1Bets + p2Bets;
-      coins += totalPool / 2;
-      alert(`🎮 Với tư cách người chơi, bạn nhận được ${totalPool / 2} xu thưởng từ khán giả!`);
+  ['p1','p2'].forEach(k=>{
+    const grid = document.getElementById(k+'-wires');
+    const s = seats[k];
+    if(k===loserSeat && iAmCutter){
+      grid.classList.add('zoomed');
+      grid.innerHTML='';
+      for(let i=1;i<=10;i++){
+        if(s.wiresCut.includes(i)) continue;
+        grid.innerHTML += `<button class="wire" onclick="cutWire('${k}',${i})">Dây ${i}</button>`;
+      }
+    } else {
+      grid.classList.remove('zoomed');
+      grid.innerHTML='';
+      for(let i=1;i<=10;i++){
+        const cut = s.wiresCut.includes(i);
+        grid.innerHTML += `<button class="wire ${cut?'cut':''}" disabled>Dây ${i}</button>`;
+      }
     }
+  });
 
-    // Reset lại game
-    document.getElementById('role-modal').style.display = 'flex';
-    renderWires();
+  // bot auto-cuts after a short delay if it's the cutter
+  if(seats[winnerRole].isBot){
+    clearTimeout(botMoveTimeout);
+    botMoveTimeout = setTimeout(()=>{
+      if(phase!=='cut') return;
+      const s = seats[loserSeat];
+      const remaining=[]; for(let i=1;i<=10;i++) if(!s.wiresCut.includes(i)) remaining.push(i);
+      const pick = remaining[Math.floor(Math.random()*remaining.length)];
+      cutWire(loserSeat, pick);
+    }, 1500+Math.random()*4000);
   }
+}
+function cutWire(seatKey, wireNum){
+  if(phase!=='cut') return;
+  const s = seats[seatKey];
+  if(!s || s.wiresCut.includes(wireNum)) return;
+  clearInterval(phaseTimer);
+  s.wiresCut.push(wireNum);
+  const isDead = s.secretWire === wireNum;
 
-  function updateUI() {
-    document.getElementById('user-coins').innerText = coins;
-    document.getElementById('p1-bets').innerText = `Cược: ${p1Bets} Xu`;
-    document.getElementById('p2-bets').innerText = `Cược: ${p2Bets} Xu`;
+  if(isDead){
+    playClimaxBoom();
+    renderDeadWireFlash(seatKey, wireNum);
+    setTimeout(()=>{ eliminatePlayer(seatKey); }, 900);
+  } else {
+    playSafeSnip();
+    stopTension();
+    startTension(0.001); stopTension();
+    toast('An toàn! Vòng tiếp theo...');
+    renderSeats();
+    setTimeout(()=>{ p1Move=null; p2Move=null; startRPSPhase(); }, 700);
   }
+}
+function renderDeadWireFlash(seatKey, wireNum){
+  phase='resolving';
+  setStatus(`💥 ${seatKey.toUpperCase()} cắt trúng dây chết!`);
+  setTimer('💥');
+  const grid = document.getElementById(seatKey+'-wires');
+  grid.classList.remove('zoomed');
+  const s = seats[seatKey];
+  grid.innerHTML='';
+  for(let i=1;i<=10;i++){
+    const cut = s.wiresCut.includes(i);
+    const dead = i===wireNum;
+    grid.innerHTML += `<button class="wire ${cut?'cut':''} ${dead?'dead-reveal':''}" disabled>Dây ${i}</button>`;
+  }
+}
 
-  renderWires();
+/* =========================================================
+   ELIMINATION / MATCH RESOLUTION
+   ========================================================= */
+function eliminatePlayer(loserSeatKey){
+  const winnerSeatKey = loserSeatKey==='p1' ? 'p2' : 'p1';
+  const winnerTag = winnerSeatKey==='p1' ? 'P1' : 'P2';
+  const loser = seats[loserSeatKey];
+  const wasMe = loser.isMe;
+
+  toast(`💥 ${loser.isMe?'Bạn':loser.name} bị loại xuống làm khán giả!`);
+
+  // predict-winner payout (x3)
+  if(myPredictBet && myPredictBet.target===winnerTag){
+    const payout = myPredictBet.amount*3;
+    coins += payout;
+    toast(`🏆 Đoán đúng người thắng! +${payout} xu`);
+    playChime(true);
+  }
+  // player reward: half of everything bet on them this match
+  const winner = seats[winnerSeatKey];
+  if(winner.isMe){
+    const totalOnWinner = winnerTag==='P1' ? (roundBetP1+predictBetP1) : (roundBetP2+predictBetP2);
+    const reward = Math.floor(totalOnWinner/2);
+    if(reward>0){ coins += reward; toast(`🎮 Bạn nhận ${reward} xu (1/2 tiền khán giả cược cho bạn)`); }
+  }
+  syncCoinsUI();
+
+  if(wasMe){
+    myRole='spectator';
+    document.getElementById('spectator-tools').style.display='flex';
+  }
+  spectators.push({name: loser.isMe?'Bạn':loser.name, isBot: loser.isBot, wasPlayer:true});
+  seats[loserSeatKey] = null;
+  roundBetP1=0; roundBetP2=0; predictBetP1=0; predictBetP2=0; myRoundBet=null; myPredictBet=null;
+  renderSeats(); updatePools(); updateQueueStrip();
+
+  phase='idle';
+  setStatus('Đang chờ khán giả vào ghế trống...');
+  setTimer('--');
+  document.getElementById('rps-group').style.display='none';
+
+  // auto-fill empty seat with a waiting bot/challenger after a short delay if human doesn't take it
+  clearTimeout(window._seatFillTimeout);
+  window._seatFillTimeout = setTimeout(()=>{
+    if(seats[loserSeatKey]) return;
+    seats[loserSeatKey] = { name: randomName(), isBot:true, secretWire:null, wiresCut:[], isMe:false };
+    renderSeats();
+    toast(`${seats[loserSeatKey].name} đã vào ghế trống`);
+    beginSecretPickPhase();
+  }, 3500);
+}
+function takeEmptySeat(){
+  const openSeat = !seats.p1 ? 'p1' : (!seats.p2 ? 'p2' : null);
+  if(!openSeat){ toast('Không có ghế trống'); return; }
+  clearTimeout(window._seatFillTimeout);
+  myRole = openSeat;
+  seats[openSeat] = { name:'Bạn', isBot:false, secretWire:null, wiresCut:[], isMe:true };
+  document.getElementById('spectator-tools').style.display='none';
+  renderSeats();
+  toast('Bạn đã vào ghế người chơi!');
+  beginSecretPickPhase();
+}
+
+/* =========================================================
+   SPECTATOR BETTING
+   ========================================================= */
+function placeRoundBet(target, amount){
+  if(phase!=='rps' && phase!=='secretpick'){ toast('Chỉ đặt cược trước/khi đang oẳn tù tì'); return; }
+  if(coins<amount){ toast('Không đủ xu!'); return; }
+  coins -= amount; syncCoinsUI();
+  if(target==='P1') roundBetP1 += amount; else roundBetP2 += amount;
+  myRoundBet = { target, amount };
+  updatePools();
+  playClick();
+  toast(`Đã cược ${amount} xu cho ${target} (thắng x2)`);
+}
+function predictWinner(target){
+  if(phase!=='secretpick' && phase!=='idle'){ toast('Chỉ đoán người thắng trận trước khi trận bắt đầu'); return; }
+  const amount = 500;
+  if(coins<amount){ toast('Không đủ xu!'); return; }
+  if(myPredictBet){ toast('Bạn đã đoán rồi cho ván này'); return; }
+  coins -= amount; syncCoinsUI();
+  if(target==='P1') predictBetP1 += amount; else predictBetP2 += amount;
+  myPredictBet = { target, amount };
+  updatePools();
+  playChime(true);
+  toast(`Đã đoán ${target} thắng trận, cược ${amount} xu (x3)`);
+}
+
+/* =========================================================
+   NAV
+   ========================================================= */
+function leaveArena(){
+  stopAmbient(); stopTension();
+  clearInterval(phaseTimer); clearTimeout(botMoveTimeout); clearTimeout(window._seatFillTimeout);
+  showScreen('screen-home');
+  syncCoinsUI();
+}
+
+syncCoinsUI();
 </script>
 </body>
 </html>
