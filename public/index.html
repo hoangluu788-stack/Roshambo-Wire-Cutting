@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây - Cartoon Full Logic</title>
+  <title>Oẳn Tù Tì Cắt Dây - Tạo & Nhập Phòng</title>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@800;900&display=swap');
 
@@ -49,40 +48,60 @@
     .avatar-frame { width: 50px; height: 50px; background: #ffd200; border: 3px solid #fff; border-radius: 12px; overflow: hidden; }
     .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
     
-    .currency-group { display: flex; gap: 10px; }
     .currency-pill {
       background: #122b61; border: 2px solid #2d60bd; border-radius: 20px;
       padding: 4px 12px; display: flex; align-items: center; gap: 6px;
       font-family: 'Bungee'; font-size: 12px; color: #ffeb3b;
     }
 
-    /* LOGO CHÍNH */
     .main-logo {
-      font-family: 'Bungee', cursive; text-align: center; font-size: 32px; color: #fff200;
+      font-family: 'Bungee', cursive; text-align: center; font-size: 30px; color: #fff200;
       text-shadow: 4px 4px 0 #b32d00, -2px -2px 0 #000;
       animation: floatLogo 3s ease-in-out infinite;
     }
 
     @keyframes floatLogo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-    /* MENU CHỌN */
-    .mode-selection { display: flex; justify-content: center; gap: 25px; }
-    .mode-card {
-      width: 42%; height: 200px; border-radius: 24px; border: 5px solid #fff;
-      cursor: pointer; display: flex; flex-direction: column; justify-content: flex-end;
-      align-items: center; padding-bottom: 20px; box-shadow: 0 12px 0 rgba(0,0,0,0.3);
+    /* LOBBY CHỌN & NHẬP PHÒNG */
+    .lobby-box {
+      background: rgba(13, 33, 74, 0.85);
+      border: 4px solid #2d60bd;
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      width: 480px;
+      margin: 0 auto;
     }
-    .card-online { background: linear-gradient(180deg, #2bb1ff 0%, #005bb5 100%); }
-    .card-friend { background: linear-gradient(180deg, #ffb700 0%, #d65900 100%); }
 
-    .mode-btn-title {
-      font-family: 'Bungee'; font-size: 20px; background: #fff; color: #000;
-      padding: 6px 20px; border-radius: 30px; border: 3px solid #0d285c;
+    .room-input {
+      width: 80%;
+      padding: 10px;
+      border-radius: 14px;
+      border: 3px solid #ffd200;
+      font-family: 'Bungee';
+      font-size: 20px;
+      text-align: center;
+      outline: none;
+      background: #091738;
+      color: #fff;
     }
+
+    .btn-action {
+      background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
+      border: 3px solid #fff; border-radius: 16px; padding: 10px 24px;
+      font-family: 'Bungee'; font-size: 16px; color: #000; cursor: pointer;
+      box-shadow: 0 4px 0 #8c5a00; transition: transform 0.1s;
+      width: 80%;
+    }
+    .btn-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #8c5a00; }
+    .btn-blue { background: linear-gradient(180deg, #00d2ff 0%, #0066cc 100%); color: #fff; box-shadow: 0 4px 0 #003366; }
 
     /* BATTLE ARENA & 10 DÂY */
-    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 380px; }
-    .wire-column { display: flex; flex-direction: column; gap: 6px; width: 220px; }
+    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 360px; }
+    .wire-column { display: flex; flex-direction: column; gap: 5px; width: 220px; }
     .wire-item {
       height: 28px; background: linear-gradient(90deg, #ff3b3b, #b30000);
       border: 2px solid #fff; border-radius: 14px; display: flex;
@@ -90,26 +109,18 @@
       font-family: 'Bungee'; font-size: 11px; cursor: pointer;
     }
     .wire-item.blue { background: linear-gradient(90deg, #0099ff, #0044cc); }
-    .wire-item.cut { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; }
 
     .timer-badge {
-      font-family: 'Bungee'; font-size: 20px; background: #ff3366;
-      border: 3px solid #fff; padding: 4px 16px; border-radius: 30px;
-      box-shadow: 0 4px 0 #000; display: inline-block;
+      font-family: 'Bungee'; font-size: 18px; background: #ff3366;
+      border: 3px solid #fff; padding: 4px 14px; border-radius: 30px;
     }
 
-    /* BET BAR */
     .bet-bar {
       background: #112652; border: 3px solid #2854ad; border-radius: 20px;
       padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;
     }
-    .btn-quick {
-      background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
-      border: 2px solid #fff; border-radius: 12px; padding: 6px 14px;
-      font-family: 'Bungee'; font-size: 12px; color: #000; cursor: pointer;
-    }
 
-    /* MODAL CHỌN DÂY CHẾT BAN ĐẦU */
+    /* MODAL CHỌN DÂY CHẾT */
     .modal-overlay {
       position: absolute; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
@@ -128,35 +139,39 @@
         <div class="avatar-frame"><img id="myAvatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=ProPlayer&backgroundColor=b6e3f4"></div>
         <div style="display:flex; flex-direction:column;">
           <span style="font-family:'Bungee'; font-size:13px;" id="myPlayerName">Player_Pro</span>
-          <span style="font-size:10px; color:#a2c4ff;" id="roleTxt">Vai trò: Người chơi</span>
+          <span style="font-size:10px; color:#a2c4ff;" id="roleTxt">Chưa vào phòng</span>
         </div>
       </div>
-      <div class="currency-group">
-        <div class="currency-pill">🪙 <span id="txtCoins">5000</span></div>
-      </div>
+      <div class="currency-pill">🪙 <span id="txtCoins">10,000</span></div>
     </div>
 
-    <!-- MAIN MENU -->
+    <!-- MÀN HÌNH TẠO / NHẬP PHÒNG (MENU) -->
     <div class="screen active" id="screenMenu">
       <div class="main-logo">OẮN TÙ TÌ<br><span style="color:#00ff66;">CẮT DÂY</span></div>
-      <div class="mode-selection">
-        <div class="mode-card card-online" onclick="enterRoom('player')">
-          <div style="font-size: 50px; margin-bottom: 10px;">🎮</div>
-          <button class="mode-btn-title">VÀO CHƠI (2 Người)</button>
-        </div>
-        <div class="mode-card card-friend" onclick="enterRoom('spectator')">
-          <div style="font-size: 50px; margin-bottom: 10px;">👁️</div>
-          <button class="mode-btn-title">KHÁN GIẢ (-10 Xu)</button>
+
+      <div class="lobby-box">
+        <button class="btn-action" onclick="createNewRoom()">➕ TẠO PHÒNG MỚI</button>
+        
+        <div style="width:100%; border-top: 2px dashed #2d60bd; margin: 5px 0;"></div>
+
+        <input type="text" id="inputRoomId" class="room-input" placeholder="NHẬP MÃ PHÒNG (4 SỐ)" maxlength="4">
+        
+        <div style="display:flex; gap:10px; width:80%;">
+          <button class="btn-action btn-blue" style="flex:1;" onclick="joinRoom('player')">🎮 CHƠI</button>
+          <button class="btn-action btn-blue" style="flex:1; background:#9c27b0;" onclick="joinRoom('spectator')">👁️ KHÁN GIẢ</button>
         </div>
       </div>
     </div>
 
-    <!-- BATTLE SCREEN -->
+    <!-- MÀN HÌNH BÀN ĐẤU -->
     <div class="screen" id="screenBattle">
       <div style="display:flex; justify-content:space-between; align-items:center; z-index:5;">
-        <span style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;" id="statusMsg">Đang chờ đủ 2 người chơi...</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span style="font-family:'Bungee'; background:#183875; padding:4px 12px; border-radius:12px; border:2px solid #fff;" id="roomDisplayCode">MÃ: ----</span>
+          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:13px;" id="statusMsg">Đang chờ đủ 2 người chơi...</span>
+        </div>
         <div class="timer-badge" id="timerTxt">⏱️ 15s</div>
-        <button onclick="leaveBattle()" class="btn-quick" style="background:#ff3366; color:#fff;">Thoát</button>
+        <button onclick="leaveBattle()" class="btn-action" style="width:auto; padding:4px 12px; background:#ff3366; color:#fff; font-size:12px;">Thoát</button>
       </div>
 
       <div class="battle-arena">
@@ -169,55 +184,73 @@
         <div class="wire-column" id="p2WireCol"></div>
       </div>
 
-      <!-- ĐẶT CƯỢC VÀ CHỌN NÚT -->
-      <div class="bet-bar" id="rpsActionBar">
-        <div style="font-family:'Bungee'; font-size:12px;" id="spectatorBetInfo">Cược Khán Giả: 100 Xu</div>
+      <!-- ĐẶT CƯỢC VÀ CHỌN OẮN TÙ TÌ -->
+      <div class="bet-bar">
+        <div style="font-family:'Bungee'; font-size:12px;" id="betInfoTxt">Số người trong phòng: 1/2</div>
         <div style="display:flex; gap:8px;" id="rpsBtnGroup">
-          <button class="btn-quick" onclick="chooseRPS('rock')">✊ Búa</button>
-          <button class="btn-quick" onclick="chooseRPS('paper')">✋ Bao</button>
-          <button class="btn-quick" onclick="chooseRPS('scissors')">✌️ Kéo</button>
+          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('rock')">✊ Búa</button>
+          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('paper')">✋ Bao</button>
+          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('scissors')">✌️ Kéo</button>
         </div>
       </div>
     </div>
 
-    <!-- MODAL CHỌN DÂY CHẾT -->
+    <!-- MODAL CHỌN DÂY CHẾT BAN ĐẦU -->
     <div class="modal-overlay" id="deadWireModal" style="display:none;">
-      <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT CỦA BẠN (1-10)</h2>
+      <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT (1-10)</h2>
       <div class="grid-select-dead" id="deadWireGrid"></div>
     </div>
 
   </div>
 
   <script>
-    let coins = 5000;
+    let coins = 10000;
     let role = 'player';
-    let playerCount = 1; // Giả lập phòng đủ 2 người
+    let currentRoomId = null;
+    let playersInRoom = 1;
     let myDeadWire = null;
-    let spectatorBetOn = 'P1'; // Khán giả đặt P1 hoặc P2
     let timer = 15;
     let timerInterval = null;
     let myChoice = null;
 
-    function enterRoom(selectedRole) {
-      role = selectedRole;
+    // --- LOGIC TẠO & NHẬP PHÒNG ---
+    function createNewRoom() {
+      // Sinh mã phòng ngẫu nhiên 4 chữ số
+      currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+      enterBattleRoom(currentRoomId, 'player');
+    }
+
+    function joinRoom(selectedRole) {
+      const roomInput = document.getElementById('inputRoomId').value.trim();
+      if (!roomInput || roomInput.length < 4) {
+        alert("Vui lòng nhập đủ mã phòng 4 chữ số!");
+        return;
+      }
+      currentRoomId = roomInput;
+      enterBattleRoom(currentRoomId, selectedRole);
+    }
+
+    function enterBattleRoom(roomId, userRole) {
+      role = userRole;
       document.getElementById('screenMenu').classList.remove('active');
       document.getElementById('screenBattle').classList.add('active');
+      document.getElementById('roomDisplayCode').innerText = "MÃ PHÒNG: " + roomId;
 
       if (role === 'spectator') {
         coins -= 10;
         document.getElementById('txtCoins').innerText = coins;
-        document.getElementById('roleTxt').innerText = "Vai trò: Khán Giả (-10 Xu)";
+        document.getElementById('roleTxt').innerText = "Khán Giả (Phòng " + roomId + ")";
         document.getElementById('rpsBtnGroup').style.display = 'none';
-        document.getElementById('statusMsg').innerText = "👁️ BẠN DỰ ĐOÁN P1 HAY P2 THẮNG?";
+        document.getElementById('betInfoTxt').innerText = "Cược Khán Giả: 100 Xu";
         initWires();
-        startPreparationCountdown();
+        start10sPreparation();
       } else {
-        document.getElementById('roleTxt').innerText = "Vai trò: Người Chơi";
-        // Hiện Modal chọn dây chết trước khi đấu
+        document.getElementById('roleTxt').innerText = "Người Chơi (Phòng " + roomId + ")";
         openDeadWireModal();
       }
     }
 
+    // --- LỰA CHỌN DÂY CHẾT BAN ĐẦU ---
     function openDeadWireModal() {
       const modal = document.getElementById('deadWireModal');
       const grid = document.getElementById('deadWireGrid');
@@ -226,32 +259,31 @@
 
       for (let i = 1; i <= 10; i++) {
         const btn = document.createElement('button');
-        btn.className = 'btn-quick';
+        btn.className = 'btn-action';
+        btn.style.width = 'auto';
         btn.innerText = 'Dây ' + i;
         btn.onclick = () => {
           myDeadWire = i;
           modal.style.display = 'none';
           initWires();
-          checkCanStartGame();
+          checkRoomPlayers();
         };
         grid.appendChild(btn);
       }
     }
 
-    function checkCanStartGame() {
-      // Giả lập chờ đủ 2 người
-      if (playerCount < 2) {
-        document.getElementById('statusMsg').innerText = "⏳ Chưa đủ 2 người chơi. Đang chờ người chơi 2...";
-        setTimeout(() => {
-          playerCount = 2;
-          document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người chơi! Bắt đầu lượt Oẳn Tù Tì!";
-          start15sTimer();
-        }, 2000);
-      } else {
+    function checkRoomPlayers() {
+      // Giả lập đủ 2 người sau 2 giây
+      document.getElementById('statusMsg').innerText = "⏳ Đang đợi đối thủ vào phòng " + currentRoomId + "...";
+      setTimeout(() => {
+        playersInRoom = 2;
+        document.getElementById('betInfoTxt').innerText = "Số người: 2/2 (Đủ người)";
+        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người! Bắt đầu ra đòn 15s!";
         start15sTimer();
-      }
+      }, 2000);
     }
 
+    // --- ĐẾM NGƯỢC OẮN TÙ TÌ 15S ---
     function start15sTimer() {
       timer = 15;
       myChoice = null;
@@ -265,10 +297,9 @@
         if (timer <= 0) {
           clearInterval(timerInterval);
           if (!myChoice && role === 'player') {
-            // Tự động ra ngẫu nhiên khi hết 15s
             const choices = ['rock', 'paper', 'scissors'];
             myChoice = choices[Math.floor(Math.random() * 3)];
-            document.getElementById('statusMsg').innerText = "⚠️ Hết 15s! Hệ thống tự động chọn cho bạn!";
+            document.getElementById('statusMsg').innerText = "⚠️ Tự động chọn Búa/Bao/Kéo!";
           }
           resolveRPS();
         }
@@ -277,8 +308,7 @@
 
     function chooseRPS(choice) {
       myChoice = choice;
-      document.getElementById('statusText');
-      document.getElementById('statusMsg').innerText = "✅ Đã chốt đáp án! Đang chờ đối thủ...";
+      document.getElementById('statusMsg').innerText = "✅ Đã chốt kèo! Chờ đối thủ...";
     }
 
     function resolveRPS() {
@@ -289,19 +319,17 @@
       document.getElementById('handP1').innerText = icons[myChoice || 'rock'];
       document.getElementById('handP2').innerText = icons[oppChoice];
 
-      // Giả lập kết quả P1 thắng
-      document.getElementById('statusMsg').innerText = "🎉 P1 THẮNG OẮN TÙ TÌ! Tiến hành trả tiền cược khán giả...";
+      document.getElementById('statusMsg').innerText = "🎉 Trận đấu hoàn tất! Trả thưởng khán giả...";
       
-      // Trả tiền cược cho khán giả
-      if (role === 'spectator' && spectatorBetOn === 'P1') {
-        coins += 200; // Trả thưởng Khán giả
+      if (role === 'spectator') {
+        coins += 200;
         document.getElementById('txtCoins').innerText = coins;
       }
 
-      // Đếm ngược 10s chuẩn bị cho vòng tiếp theo
       start10sPreparation();
     }
 
+    // --- 10S CHUẨN BỊ VÒNG MỚI ---
     function start10sPreparation() {
       let prepTime = 10;
       document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
@@ -311,7 +339,7 @@
         document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
         if (prepTime <= 0) {
           clearInterval(prepInterval);
-          start15sTimer(); // Sang vòng đấu mới
+          if (role === 'player') start15sTimer();
         }
       }, 1000);
     }
@@ -338,6 +366,7 @@
       clearInterval(timerInterval);
       document.getElementById('screenBattle').classList.remove('active');
       document.getElementById('screenMenu').classList.add('active');
+      document.getElementById('roleTxt').innerText = "Chưa vào phòng";
     }
   </script>
 </body>
