@@ -61,7 +61,11 @@
   .avatar-block{display:flex; align-items:center; gap:10px;}
   .avatar-circle{width:52px; height:52px; border-radius:50%; background:linear-gradient(180deg,#8ec8ff,#4a7fe0); display:flex; align-items:center; justify-content:center; font-size:1.6rem; border:3px solid var(--gold); position:relative;}
   .lvl-badge{position:absolute; bottom:-6px; right:-6px; background:var(--gold); color:#442c00; font-size:.62rem; font-weight:800; padding:1px 6px; border-radius:8px; border:2px solid var(--navy-deep);}
-  .home-name{font-weight:700; font-size:1rem;}
+  .home-name{font-weight:700; font-size:1rem; cursor:pointer;}
+  .google-status{font-size:.68rem;color:var(--ink-dim);margin-top:2px;}
+  .google-avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);display:none;}
+  .google-login-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:#fff;color:#1f1f1f;font:700 .78rem inherit;border:1px solid rgba(0,0,0,.12);cursor:pointer;}
+  .google-login-btn img{width:18px;height:18px;}
   .stat-row{display:flex; gap:8px; margin-top:4px;}
   .stat-chip{font-size:.78rem; color:var(--ink-dim); display:flex; align-items:center; gap:4px;}
   .stat-chip b{color:var(--gold); font-weight:700;}
@@ -161,7 +165,15 @@
   .seat-open-btn{font-size:.78rem; padding:9px 14px;}
 
   .queue-strip{font-size:.68rem; color:var(--ink-dim); text-align:center; margin-top:4px;}
-  .player-card{display:flex;align-items:center;gap:8px;}
+  .player-card{display:flex;align-items:center;gap:8px;min-width:0;}
+  .player-info{min-width:0;display:flex;flex-direction:column;gap:1px;}
+  .player-info .player-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+  .action-label{font-size:.66rem;color:var(--ink-dim);font-weight:700;min-height:16px;}
+  .action-label.hot{color:var(--gold);}
+  .arena-avatar.action-rock,.arena-avatar.action-paper,.arena-avatar.action-scissors{animation:avatarMove .5s ease-in-out 2;}
+  .arena-avatar.action-cut{animation:avatarCut .22s ease-in-out 4;}
+  @keyframes avatarMove{0%,100%{transform:translateY(0) rotate(0)}35%{transform:translateY(-9px) rotate(-6deg) scale(1.1)}70%{transform:translateY(-2px) rotate(5deg) scale(1.05)}}
+  @keyframes avatarCut{0%,100%{transform:translateX(0) rotate(0)}50%{transform:translateX(7px) rotate(10deg)}}
   .arena-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:1.75rem;background:linear-gradient(180deg,#fff,#bcd4ff);border:3px solid var(--gold);
     box-shadow:0 5px 14px rgba(0,0,0,.28);flex:none;transition:transform .25s ease;}
@@ -183,8 +195,15 @@
   .bet-target.selected{outline:2px solid var(--gold);background:rgba(255,201,60,.2);}
   .queue-box{margin-top:7px;padding:6px 9px;border-radius:10px;background:rgba(255,255,255,.04);font-size:.7rem;color:var(--ink-dim);}
   .pending-badge{color:#7ff0b4;font-weight:800;}
+  .cut-character{display:none;align-items:center;gap:7px;padding:5px 10px;border-radius:12px;background:rgba(255,255,255,.05);font-size:.72rem;color:var(--ink-dim);}
+  .cut-character.show{display:flex;}
+  .cut-character .scissors{font-size:1.35rem;animation:snip .32s ease-in-out infinite alternate;}
+  @keyframes snip{to{transform:rotate(-18deg) scale(1.12)}}
+  .result-flash{animation:resultFlash .75s ease-in-out 2;}
+  @keyframes resultFlash{50%{filter:brightness(1.6);transform:scale(1.03)}}
   .public-name-note{font-size:.7rem;color:var(--gold);text-align:center;margin-top:5px;}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -194,16 +213,19 @@
   <div class="screen active" id="screen-home">
     <div class="home-top">
       <div class="avatar-block">
-        <div class="avatar-circle">🧑‍🚀<span class="lvl-badge">Lv.15</span></div>
+        <div class="avatar-circle" id="home-avatar-fallback">🧑‍🚀<span class="lvl-badge">Lv.15</span></div>
+        <img class="google-avatar" id="home-google-avatar" alt="Google avatar">
         <div>
-          <div class="home-name">Player_Pro</div>
+          <div class="home-name" id="home-name" onclick="openPublicNameModal('profile')">Chưa đăng nhập</div>
+          <div class="google-status" id="google-status">Đăng nhập Google để trở thành người chơi</div>
           <div class="stat-row">
             <div class="stat-chip">🪙 <b id="home-coins">100000</b></div>
             <div class="stat-chip">💎 <b id="home-gems">250</b></div>
           </div>
         </div>
       </div>
-      <div style="display:flex;">
+      <div style="display:flex;align-items:center;">
+        <button class="google-login-btn" id="home-google-login" onclick="openGoogleLogin()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt=""> Đăng nhập Google</button>
         <div class="icon-btn" onclick="toast('Cài đặt: đang phát triển')">⚙️</div>
         <div class="icon-btn" onclick="toast('Hộp thư trống')">✉️</div>
       </div>
@@ -253,7 +275,7 @@
     <div class="arena">
       <div class="side p1side" id="p1side">
         <div class="side-head">
-          <div class="player-card"><div class="arena-avatar" id="p1-avatar">🧑</div><span id="p1-name">🔴 P1: Trống</span></div>
+          <div class="player-card"><div class="arena-avatar" id="p1-avatar">🧑‍🚀</div><div class="player-info"><span class="player-name" id="p1-name">🔴 P1: Trống</span><span class="action-label" id="p1-action">Đang chờ</span></div></div>
           <span class="secret-lock" id="p1-lock">🔒 chưa chọn dây chết</span>
         </div>
         <div class="wires" id="p1-wires"></div>
@@ -264,11 +286,12 @@
         <h1>VS</h1>
         <div class="rps-emo"><span id="p1-move">❓</span><span id="p2-move">❓</span></div>
         <div id="mid-note" style="font-size:.68rem;color:var(--ink-dim);text-align:center;"></div>
+        <div class="cut-character" id="cut-character"><span class="scissors">✂️</span><span id="cut-character-text">Đang cắt dây</span></div>
       </div>
 
       <div class="side p2side" id="p2side">
         <div class="side-head">
-          <div class="player-card"><div class="arena-avatar p2" id="p2-avatar">🧑</div><span id="p2-name">🔵 P2: Trống</span></div>
+          <div class="player-card"><div class="arena-avatar p2" id="p2-avatar">🧑‍🎨</div><div class="player-info"><span class="player-name" id="p2-name">🔵 P2: Trống</span><span class="action-label" id="p2-action">Đang chờ</span></div></div>
           <span class="secret-lock" id="p2-lock">🔒 chưa chọn dây chết</span>
         </div>
         <div class="wires" id="p2-wires"></div>
@@ -430,6 +453,58 @@ let myRole = null;   // 'p1' | 'p2' | 'spectator' | null
 let names = ['Minh Anh','Gia Bảo','Thu Hà','Quốc Huy','Bảo Trân','Đức Anh','Khánh Vy','Hoàng Long'];
 function randomName(){ return names[Math.floor(Math.random()*names.length)]; }
 
+// Google Identity Services: chỉ tài khoản đã đăng nhập mới được vào vai người chơi.
+const GOOGLE_CLIENT_ID='624410093822-dmhrvoeg1pk0lr474vp4pu1qbet332d9.apps.googleusercontent.com';
+let googleUser=null;
+function decodeJwtPayload(token){
+  try{ const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(atob(part).split('').map(c=>'%' + ('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); }catch(e){ return null; }
+}
+function initGoogleSignIn(){
+  if(!window.google?.accounts?.id) return;
+  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential});
+}
+function openGoogleLogin(){
+  if(!window.google?.accounts?.id){ toast('Google Sign-In đang tải, thử lại sau 1 giây'); return; }
+  initGoogleSignIn();
+  google.accounts.id.prompt();
+  openModal(`<div class="modal-card"><h2>ĐĂNG NHẬP GOOGLE</h2><div class="modal-sub">Bạn phải đăng nhập Google để được nhận ghế P1/P2. Khán giả cũng dùng tài khoản này để giữ tên và tiền xu của mình.</div><div id="google-button" style="display:flex;justify-content:center;margin:16px 0;"></div><button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="closeModal()">Đóng</button></div>`);
+  setTimeout(()=>{
+    if(window.google?.accounts?.id && document.getElementById('google-button')) google.accounts.id.renderButton(document.getElementById('google-button'),{theme:'outline',size:'large',shape:'pill',text:'signin_with',width:280});
+  },50);
+}
+function handleGoogleCredential(response){
+  const p=decodeJwtPayload(response.credential);
+  if(!p || !p.sub){ toast('Không đọc được phiên đăng nhập Google'); return; }
+  googleUser={sub:p.sub,name:p.name||'Người chơi',picture:p.picture||''};
+  closeModal();
+  renderHomeProfile();
+  toast(`✅ Đã đăng nhập Google: ${googleUser.name}`);
+}
+function renderHomeProfile(){
+  const nameEl=document.getElementById('home-name');
+  const status=document.getElementById('google-status');
+  const login=document.getElementById('home-google-login');
+  const fallback=document.getElementById('home-avatar-fallback');
+  const img=document.getElementById('home-google-avatar');
+  if(googleUser){
+    nameEl.textContent=publicPlayerName||googleUser.name;
+    status.textContent='✅ Đã đăng nhập Google · bấm tên để đặt tên công khai';
+    login.style.display='none';
+    fallback.style.display='none';
+    if(googleUser.picture){ img.src=googleUser.picture; img.style.display='block'; }
+  }else{
+    nameEl.textContent='Chưa đăng nhập';
+    status.textContent='Đăng nhập Google để trở thành người chơi';
+    login.style.display='flex'; fallback.style.display='flex'; img.style.display='none';
+  }
+}
+function requireGoogleLogin(next){
+  if(googleUser) return true;
+  openGoogleLogin();
+  toast('Cần đăng nhập Google trước');
+  return false;
+}
+
 const seats = {
   p1: null, // {name, isBot, secretWire, wiresCut:[], connected:true, isMe:false}
   p2: null
@@ -470,6 +545,7 @@ function openModal(html){ document.getElementById('modal-layer').innerHTML = `<d
    ========================================================= */
 function openOnlineRoleModal(){
   playClick();
+  if(!googleUser){ openGoogleLogin(); return; }
   openModal(`
     <div class="modal-card">
       <h2>CHƠI ONLINE</h2>
@@ -498,13 +574,14 @@ function genFakeRooms(){
   }
 }
 function openPublicNameModal(afterAction='match'){
+  if(!googleUser){ openGoogleLogin(); return; }
   afterPublicNameAction=afterAction;
   closeModal();
   openModal(`
     <div class="modal-card">
       <h2>CÔNG KHAI TÊN NGƯỜI CHƠI</h2>
       <div class="modal-sub">Tên này sẽ hiển thị công khai trên bàn chơi. Không dùng biệt danh ẩn danh.</div>
-      <input class="code-input" id="public-player-name" maxlength="18" placeholder="Nhập tên của bạn" style="letter-spacing:normal;">
+      <input class="code-input" id="public-player-name" maxlength="18" value="${publicPlayerName||googleUser?.name||''}" placeholder="Nhập tên của bạn" style="letter-spacing:normal;">
       <div class="public-name-note">⚠️ Người chơi thật mới được ngồi vào P1/P2.</div>
       <button class="btn btn-cta" style="width:100%;padding:12px;margin-top:10px;" onclick="confirmPublicPlayerName()">Tiếp tục</button>
     </div>`);
@@ -514,33 +591,36 @@ function confirmPublicPlayerName(){
   const name=(input?.value||'').trim();
   if(name.length<2){toast('Tên công khai phải có ít nhất 2 ký tự');return;}
   closeModal();
+  publicPlayerName=name;
+  renderHomeProfile();
   if(afterPublicNameAction==='friend') openFriendModal();
+  else if(afterPublicNameAction==='profile'){ toast('Đã lưu tên công khai'); }
   else openMatchmaking(name);
   afterPublicNameAction=null;
 }
 let publicPlayerName='';
 let afterPublicNameAction=null;
 function openMatchmaking(playerName=''){
+  if(!requireGoogleLogin()) return;
+  startAmbient();
   if(playerName) publicPlayerName=playerName;
-  genFakeRooms();
+  if(!publicPlayerName){ openPublicNameModal('match'); return; }
   openModal(`
     <div class="modal-card">
-      <h2>GHÉP NGƯỜI CHƠI</h2>
-      <div class="modal-sub">Không có máy trong ghế người chơi. Bạn sẽ chờ một người thật khác.</div>
-      <div class="room-list">
-        ${fakeRooms.map(r=>`
-          <div class="room-row">
-            <div class="rinfo"><b>Phòng của ${r.host}</b><span class="rtag">${r.waiting ? 'Đang chờ người chơi · Mã ' + r.code : 'Đã đủ 2 người'}</span></div>
-            <button class="btn btn-blue" style="padding:8px 14px;font-size:.78rem;" ${r.waiting?'':'disabled'} onclick="joinRoomAsPlayer('${r.host}')">Vào</button>
-          </div>`).join('')}
-      </div>
-      <button class="btn btn-cta" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeModal(); createHumanWaitingRoom()">🎲 Tìm người chơi</button>
+      <h2>SẢNH CHỜ NGƯỜI CHƠI</h2>
+      <div class="modal-sub">Tên <b>${publicPlayerName}</b> sẽ được công khai trên bàn. Máy không bao giờ được ngồi P1/P2.</div>
+      <div class="queue-box">🟢 Google: đã xác thực · 🎮 Người chơi: chỉ tài khoản thật · 🤖 Máy: không được phép làm người chơi</div>
+      <div class="spinner"></div>
+      <div id="match-wait-text" class="modal-sub">Đang tìm một người chơi thật khác…</div>
+      <button class="btn btn-cta" style="width:100%;padding:12px;" onclick="closeModal(); createHumanWaitingRoom()">Tạo sảnh chờ</button>
+      <button class="btn btn-ghost" style="width:100%;padding:10px;margin-top:8px;" onclick="closeModal()">Huỷ</button>
     </div>`);
 }
 function joinRoomAsPlayer(hostName){
+  if(!requireGoogleLogin()) return;
   startNewSession();
   myRole='p1';
-  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true};
+  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍🚀'};
   seats.p2=null;
   showScreen('screen-arena');
   renderSeats();
@@ -549,9 +629,11 @@ function joinRoomAsPlayer(hostName){
   document.getElementById('rps-group').style.display='none';
 }
 function createHumanWaitingRoom(){
+  if(!requireGoogleLogin()) return;
+  if(!publicPlayerName){ openPublicNameModal('match'); return; }
   startNewSession();
   myRole='p1';
-  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true};
+  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍🚀'};
   seats.p2=null;
   showScreen('screen-arena');
   renderSeats();
@@ -563,6 +645,7 @@ function createHumanWaitingRoom(){
    SPECTATE BROWSER
    ========================================================= */
 function openSpectateBrowser(){
+  if(!requireGoogleLogin()) return;
   openModal(`
     <div class="modal-card">
       <h2>XEM & CƯỢC</h2>
@@ -578,6 +661,7 @@ function openSpectateBrowser(){
   `);
 }
 function joinAsSpectator(){
+  if(!requireGoogleLogin()) return;
   startNewSession();
   myRole='spectator';
   // Khán giả chỉ vào xem/cược. Không tự tạo bot trong ghế người chơi.
@@ -597,6 +681,7 @@ function joinAsSpectator(){
    ========================================================= */
 function openFriendModal(){
   playClick();
+  if(!requireGoogleLogin()) return;
   if(!publicPlayerName){
     openPublicNameModal('friend');
     return;
@@ -627,19 +712,8 @@ function switchFriendTab(tab){
       <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="closeModal()">Huỷ</button>
     `;
     clearTimeout(window._friendJoinTimeout);
-    window._friendJoinTimeout = setTimeout(()=>{
-      if(!document.getElementById('create-wait-msg')) return;
-      closeModal();
-      startNewSession();
-      myRole='p1';
-      seats.p1 = { name:publicPlayerName, isBot:false, secretWire:null, wiresCut:[], isMe:true };
-      seats.p2 = null;
-      showScreen('screen-arena');
-      renderSeats();
-      setStatus('Đang chờ người chơi thật thứ hai vào phòng...');
-      document.getElementById('rps-group').style.display='none';
-      fillBotSpectators();
-    }, 2600 + Math.random()*1800);
+    startAmbient();
+    body.innerHTML += `<button class="btn btn-cta" style="width:100%;padding:11px;" onclick="closeModal(); createHumanWaitingRoom()">Vào sảnh chờ</button>`;
   } else {
     body.innerHTML = `
       <div class="modal-sub">Nhập mã phòng 4 chữ số bạn nhận được</div>
@@ -649,6 +723,7 @@ function switchFriendTab(tab){
   }
 }
 function submitJoinCode(){
+  if(!requireGoogleLogin()) return;
   const v = document.getElementById('join-code-input').value.trim();
   if(v.length!==4 || isNaN(v)){ toast('Mã phòng gồm 4 chữ số'); return; }
   closeModal();
@@ -678,10 +753,7 @@ function startNewSession(){
   startAmbient();
 }
 function fillBotSpectators(){
-  const n = Math.floor(Math.random()*3);
-  for(let i=0;i<n;i++){
-    spectators.push({name:randomName()+' 🤖',isBot:true});
-  }
+  // Giữ tên hàm để tương thích với giao diện cũ, nhưng tuyệt đối không tạo bot.
   updateQueueStrip();
 }
 function updateQueueStrip(){
@@ -703,8 +775,13 @@ function seatLabel(seatKey){
 function renderSeats(){
   document.getElementById('p1-name').textContent = seatLabel('p1');
   document.getElementById('p2-name').textContent = seatLabel('p2');
-  document.getElementById('p1-avatar').textContent = avatarFor(seats.p1,0);
-  document.getElementById('p2-avatar').textContent = avatarFor(seats.p2,1);
+  const a1=document.getElementById('p1-avatar'), a2=document.getElementById('p2-avatar');
+  a1.textContent = seats.p1?.isMe && googleUser ? '🧑‍💻' : avatarFor(seats.p1,0);
+  a2.textContent = seats.p2?.isMe && googleUser ? '🧑‍💻' : avatarFor(seats.p2,1);
+  if(seats.p1?.isMe && googleUser?.picture){ a1.style.backgroundImage=`url('${googleUser.picture}')`; a1.style.backgroundSize='cover'; a1.textContent=''; } else { a1.style.backgroundImage=''; }
+  if(seats.p2?.isMe && googleUser?.picture){ a2.style.backgroundImage=`url('${googleUser.picture}')`; a2.style.backgroundSize='cover'; a2.textContent=''; } else { a2.style.backgroundImage=''; }
+  document.getElementById('p1-action').textContent = seats.p1 ? (phase==='rps'?'🤫 Chọn Kéo / Búa / Bao':phase==='cut' && currentRoundWinner==='P1'?'✂️ CẮT DÂY':'Đang chơi') : 'Đang chờ';
+  document.getElementById('p2-action').textContent = seats.p2 ? (phase==='rps'?'🤫 Chọn Kéo / Búa / Bao':phase==='cut' && currentRoundWinner==='P2'?'✂️ CẮT DÂY':'Đang chơi') : 'Đang chờ';
   document.getElementById('p1-avatar').classList.toggle('rps-ready', phase==='rps' && !!seats.p1);
   document.getElementById('p2-avatar').classList.toggle('rps-ready', phase==='rps' && !!seats.p2);
   ['p1','p2'].forEach(k=>{
@@ -735,6 +812,7 @@ function setTimer(t){ document.getElementById('timer').textContent = t; }
    SECRET WIRE PICK PHASE
    ========================================================= */
 function beginSecretPickPhase(){
+  if(!seats.p1 || !seats.p2 || seats.p1.isBot || seats.p2.isBot){ toast('Chỉ 2 người chơi thật đã đăng nhập Google mới được bắt đầu.'); return; }
   phase = 'secretpick';
   payPendingPayout();
   setStatus('Mỗi người chơi chọn 1 dây chết bí mật');
@@ -796,12 +874,7 @@ function startRPSPhase(){
   updatePools(); updateQueueStrip();
   renderSeats();
 
-  ['p1','p2'].forEach(k=>{
-    if(seats[k].isBot){
-      clearTimeout(botMoveTimeout);
-      setTimeout(()=>{ if(phase==='rps'){ if(k==='p1') p1Move = randMove(); else p2Move = randMove(); } }, 800+Math.random()*3000);
-    }
-  });
+  // Không có bot trong P1/P2: chỉ người chơi Google thật mới được chọn.
 
   let t=10;
   setTimer(t+'s');
@@ -810,8 +883,7 @@ function startRPSPhase(){
     t--;
     if(t<0){
       clearInterval(phaseTimer);
-      if(!p1Move) p1Move = randMove();
-      if(!p2Move) p2Move = randMove();
+      if(!p1Move || !p2Move){ toast('⏳ Một người chưa chọn Kéo / Búa / Bao — ván được làm lại.'); startRPSPhase(); return; }
       revealRPS();
       return;
     }
@@ -832,6 +904,22 @@ function chooseRPS(move){
 /* =========================================================
    REVEAL PHASE (2s)
    ========================================================= */
+function moveLabel(move){ return {rock:'✊ BÚA',paper:'✋ BAO',scissors:'✌️ KÉO'}[move]||'❓'; }
+function setPlayerAction(seatKey,text,hot=false){
+  const el=document.getElementById(seatKey+'-action');
+  if(el){ el.textContent=text; el.classList.toggle('hot',!!hot); }
+  const av=document.getElementById(seatKey+'-avatar');
+  if(av){ av.classList.remove('action-rock','action-paper','action-scissors','action-cut'); }
+}
+function playResultReveal(){
+  const c=ac(), now=c.currentTime;
+  [523,659,784,1046].forEach((f,i)=>{
+    const o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=f;
+    const t=now+i*.11; g.gain.setValueAtTime(.0001,t); g.gain.linearRampToValueAtTime(.12,t+.035); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.45);
+  });
+}
+
 function revealRPS(){
   phase='reveal';
   clearInterval(phaseTimer);
@@ -841,6 +929,11 @@ function revealRPS(){
   void rps.offsetWidth;
   document.getElementById('p1-move').textContent = emo[p1Move];
   document.getElementById('p2-move').textContent = emo[p2Move];
+  setPlayerAction('p1', moveLabel(p1Move), true);
+  setPlayerAction('p2', moveLabel(p2Move), true);
+  document.getElementById('p1-avatar').classList.add('action-'+p1Move);
+  document.getElementById('p2-avatar').classList.add('action-'+p2Move);
+  playResultReveal();
   rps.classList.add('rps-reveal');
   setStatus('BƯỚC 2 · Kết quả oẳn tù tì...');
   setTimer('⏱');
@@ -866,7 +959,11 @@ function startCuttingPhase(){
   phase='cut';
   const loserSeat = currentRoundWinner==='P1' ? 'p2' : 'p1';
   setStatus(`BƯỚC 3 · ${currentRoundWinner} cắt dây của đối thủ (7s)`);
-  startTension(7);
+  setPlayerAction(currentRoundWinner.toLowerCase(),'✂️ CẮT DÂY',true);
+  setPlayerAction(loserSeat,'😰 CHỜ DÂY',false);
+  document.getElementById(currentRoundWinner.toLowerCase()+'-avatar')?.classList.add('action-cut');
+  document.getElementById('cut-character')?.classList.add('show');
+  document.getElementById('cut-character-text').textContent=`${currentRoundWinner} đang cắt dây`;
   renderCutGrids(loserSeat);
 
   let t=7;
@@ -876,11 +973,8 @@ function startCuttingPhase(){
     t--;
     if(t<0){
       clearInterval(phaseTimer);
-      const s = seats[loserSeat];
-      const remaining = [];
-      for(let i=1;i<=10;i++) if(!s.wiresCut.includes(i)) remaining.push(i);
-      const auto = remaining[Math.floor(Math.random()*remaining.length)];
-      cutWire(loserSeat, auto);
+      toast('⏳ Hết thời gian cắt dây — lượt này được bỏ qua và quay lại oẳn tù tì.');
+      startRPSPhase();
       return;
     }
     setTimer(t+'s');
@@ -910,17 +1004,7 @@ function renderCutGrids(loserSeat){
     }
   });
 
-  // bot auto-cuts after a short delay if it's the cutter
-  if(seats[winnerRole].isBot){
-    clearTimeout(botMoveTimeout);
-    botMoveTimeout = setTimeout(()=>{
-      if(phase!=='cut') return;
-      const s = seats[loserSeat];
-      const remaining=[]; for(let i=1;i<=10;i++) if(!s.wiresCut.includes(i)) remaining.push(i);
-      const pick = remaining[Math.floor(Math.random()*remaining.length)];
-      cutWire(loserSeat, pick);
-    }, 1500+Math.random()*4000);
-  }
+  // Không tự cắt bằng máy: chỉ người thắng thật mới được cắt dây.
 }
 function cutWire(seatKey, wireNum){
   if(phase!=='cut') return;
@@ -932,12 +1016,12 @@ function cutWire(seatKey, wireNum){
 
   if(isDead){
     playClimaxBoom();
+    document.getElementById('cut-character')?.classList.remove('show');
     renderDeadWireFlash(seatKey, wireNum);
     setTimeout(()=>{ eliminatePlayer(seatKey); }, 900);
   } else {
     playSafeSnip();
-    stopTension();
-    startTension(0.001); stopTension();
+    document.getElementById('cut-character')?.classList.remove('show');
     toast('An toàn! Vòng tiếp theo...');
     renderSeats();
     setTimeout(()=>{ p1Move=null; p2Move=null; startRPSPhase(); }, 700);
@@ -1000,6 +1084,8 @@ function eliminatePlayer(loserSeatKey){
 }
 
 function openSeatRegistration(){
+  if(!requireGoogleLogin()) return;
+  if(myRole!=='spectator'){toast('Chỉ khán giả mới có thể đăng ký ghế');return;}
   openModal(`
     <div class="modal-card">
       <h2>ĐĂNG KÝ VÀO GHẾ</h2>
@@ -1009,6 +1095,7 @@ function openSeatRegistration(){
     </div>`);
 }
 function confirmSeatRegistration(){
+  if(!googleUser){ openGoogleLogin(); return; }
   const name=(document.getElementById('queue-player-name')?.value||'').trim();
   if(name.length<2){toast('Tên công khai phải có ít nhất 2 ký tự');return;}
   closeModal();
@@ -1026,7 +1113,7 @@ function processSeatQueue(){
   const next=seatQueue.shift();
   clearTimeout(window._seatFillTimeout);
 
-  if(next.isMe){
+  if(next.isMe && googleUser){
     myRole=openSeat;
     seats[openSeat]={name:next.name,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]};
     document.getElementById('spectator-tools').style.display='none';
@@ -1068,6 +1155,7 @@ function selectBetTarget(target){
 }
 function placeMatchBet(){
   if(myRole!=='spectator'){toast('Bạn phải ở vai trò khán giả');return;}
+  if(!seats.p1 || !seats.p2){toast('Chưa có đủ 2 người chơi thật để đặt chip');return;}
   if(phase!=='idle' && phase!=='secretpick'){toast('Chỉ được đặt chip trong thời gian chuẩn bị');return;}
   if(!selectedBetTarget){toast('Hãy chọn P1 hoặc P2 trước');return;}
   if(myPredictBet){toast('Chip đã đặt và không thể thu hồi');return;}
@@ -1102,6 +1190,8 @@ function leaveArena(){
 }
 
 syncCoinsUI();
+renderHomeProfile();
+window.addEventListener('load',()=>{ setTimeout(initGoogleSignIn,300); });
 </script>
 </body>
 </html>
