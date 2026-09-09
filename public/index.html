@@ -3,322 +3,361 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roshambo Wire Cutting</title>
+  <title>Oẳn Tù Tì Cắt Dây Online</title>
   <style>
     :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e24;
-      --accent-color: #ff4757;
-      --text-color: #ffffff;
-      --subtext-color: #a0a0a0;
+      --primary-blue: #2980b9;
+      --primary-red: #c0392b;
+      --bg-sky: #74b9ff;
+      --panel-bg: rgba(20, 20, 35, 0.85);
+      --gold: #f1c40f;
     }
 
+    * { box-sizing: border-box; user-select: none; }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      box-sizing: border-box;
+      margin: 0; font-family: 'Arial Round MT Bold', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #74b9ff, #a29bfe);
+      height: 100vh; display: flex; justify-content: center; align-items: center;
+      color: #fff; overflow: hidden;
     }
 
-    .game-container {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      padding: 25px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      text-align: center;
+    .game-screen {
+      width: 1000px; height: 580px; background: #1e1e2f; border-radius: 20px;
+      border: 6px solid #2f3542; box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+      position: relative; display: flex; flex-direction: column; justify-content: space-between;
+      padding: 15px; background: radial-gradient(circle, #2c3e50 0%, #0f172a 100%);
     }
 
-    h1 {
-      margin-top: 0;
-      color: var(--accent-color);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
+    /* Top Bar Header */
+    .header-bar { display: flex; justify-content: space-between; align-items: center; }
+    .user-profile { background: #2f3640; padding: 6px 15px; border-radius: 30px; border: 2px solid #f1c40f; font-weight: bold;}
+    .timer-badge { background: #e74c3c; font-size: 1.4rem; padding: 6px 20px; border-radius: 20px; font-weight: bold; border: 2px solid #fff; }
 
-    .status-panel {
-      background: #2a2a35;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 1.1em;
+    /* Battle Arena Layout */
+    .arena { display: flex; justify-content: space-between; align-items: center; height: 320px; position: relative; }
+    .player-side { width: 38%; height: 100%; background: var(--panel-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; align-items: center; border: 3px solid #555; }
+    .player-side.p1 { border-color: #3498db; }
+    .player-side.p2 { border-color: #e74c3c; }
+    
+    .player-info { width: 100%; display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .wires-list { width: 100%; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+    
+    .wire-item {
+      height: 22px; width: 100%; background: #34495e; border-radius: 10px; border: none; color: #fff;
+      font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
     }
+    .p1 .wire-item { background: #2980b9; }
+    .p2 .wire-item { background: #c0392b; }
+    .wire-item.cut { background: #555 !important; color: #888; text-decoration: line-through; }
+    .wire-item:disabled { opacity: 0.7; cursor: not-allowed; }
 
-    .section-title {
-      margin: 15px 0 10px 0;
-      font-weight: 600;
-      color: var(--subtext-color);
+    .vs-center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+    .rps-display { font-size: 3rem; display: flex; gap: 10px; }
+
+    /* Controls & Bet Section */
+    .controls-panel { background: var(--panel-bg); border-radius: 15px; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .rps-btn-group { display: flex; gap: 10px; }
+    .rps-btn { font-size: 1.8rem; width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; background: #f1c40f; transition: 0.2s; }
+    .rps-btn:hover { transform: scale(1.1); }
+
+    .bet-box { display: flex; gap: 10px; align-items: center; background: #111; padding: 8px; border-radius: 10px; }
+    .bet-btn { background: #e67e22; border: none; color: #fff; padding: 6px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+    /* Modal / Role Choice Overlay */
+    .overlay {
+      position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85);
+      border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
     }
-
-    /* Roshambo Buttons */
-    .rps-choices {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .rps-btn {
-      background: #333342;
-      border: 2px solid #44445a;
-      color: #fff;
-      font-size: 2rem;
-      padding: 15px;
-      border-radius: 50%;
-      cursor: pointer;
-      width: 70px;
-      height: 70px;
-      transition: transform 0.2s, background-color 0.2s;
-    }
-
-    .rps-btn:hover:not(:disabled) {
-      transform: scale(1.1);
-      background: #4f4f6e;
-    }
-
-    .rps-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* Wires Grid */
-    .wires-container {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 15px;
-    }
-
-    .wire-btn {
-      height: 45px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      color: #fff;
-      cursor: pointer;
-      font-size: 1em;
-      position: relative;
-      transition: opacity 0.3s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .wire-btn:hover:not(:disabled) {
-      filter: brightness(1.2);
-    }
-
-    .wire-btn:disabled {
-      cursor: not-allowed;
-    }
-
-    .wire-btn.cut {
-      background-color: #444 !important;
-      color: #888;
-      text-decoration: line-through;
-      box-shadow: inset 0 0 10px #000;
-    }
-
-    .wire-btn.cut::after {
-      content: '✂ CẮT';
-      position: absolute;
-      right: 15px;
-      color: #ff4757;
-      font-size: 0.8em;
-      text-decoration: none;
-    }
-
-    /* Specific Wire Colors */
-    .wire-0 { background-color: #e74c3c; }
-    .wire-1 { background-color: #3498db; }
-    .wire-2 { background-color: #2ecc71; }
-    .wire-3 { background-color: #f1c40f; color: #000; }
-    .wire-4 { background-color: #9b59b6; }
-
-    /* Action / Restart Button */
-    .reset-btn {
-      margin-top: 25px;
-      padding: 12px 24px;
-      font-size: 1em;
-      background-color: var(--accent-color);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .reset-btn:hover {
-      background-color: #ff6b81;
-    }
+    .modal-card { background: #2c3e50; padding: 30px; border-radius: 15px; text-align: center; border: 3px solid #f1c40f; }
+    .action-btn { background: #2ecc71; color: white; border: none; padding: 10px 20px; font-size: 1.1rem; border-radius: 8px; cursor: pointer; margin: 5px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-<div class="game-container">
-  <h1>Wire Cutter</h1>
-  
-  <div class="status-panel" id="status-text">
-    Hãy chọn Kéo, Búa hoặc Bao để đấu với Máy!
+<div class="game-screen">
+  <!-- Top Bar -->
+  <div class="header-bar">
+    <div class="user-profile">💰 Xu: <span id="user-coins">100000</span> | Vai trò: <span id="user-role">Khán giả</span></div>
+    <div class="timer-badge" id="timer">10s</div>
+    <div style="font-weight: bold; color: #f1c40f;" id="game-status">Đang chờ người chơi...</div>
   </div>
 
-  <div class="section-title">BƯỚC 1: OẰN TÙ TÌ</div>
-  <div class="rps-choices">
-    <button class="rps-btn" onclick="playRPS('rock')" id="btn-rock">✊</button>
-    <button class="rps-btn" onclick="playRPS('paper')" id="btn-paper">✋</button>
-    <button class="rps-btn" onclick="playRPS('scissors')" id="btn-scissors">✌️</button>
+  <!-- Arena -->
+  <div class="arena">
+    <!-- Player 1 -->
+    <div class="player-side p1">
+      <div class="player-info">
+        <span id="p1-name">🔴 P1: Trống</span>
+        <span id="p1-bets">Cược: 0 Xu</span>
+      </div>
+      <div class="wires-list" id="p1-wires"></div>
+    </div>
+
+    <!-- VS Display -->
+    <div class="vs-center">
+      <h1 style="margin: 0; color: #f1c40f;">VS</h1>
+      <div class="rps-display">
+        <span id="p1-move">❓</span>
+        <span id="p2-move">❓</span>
+      </div>
+    </div>
+
+    <!-- Player 2 -->
+    <div class="player-side p2">
+      <div class="player-info">
+        <span id="p2-name">🔵 P2: Trống</span>
+        <span id="p2-bets">Cược: 0 Xu</span>
+      </div>
+      <div class="wires-list" id="p2-wires"></div>
+    </div>
   </div>
 
-  <div class="section-title">BƯỚC 2: CẮT DÂY (Cần thắng Oẳn tù tì)</div>
-  <div class="wires-container" id="wires-grid">
-    <!-- Dynamic Wires -->
+  <!-- Controls Panel -->
+  <div class="controls-panel">
+    <!-- RPS Buttons -->
+    <div class="rps-btn-group">
+      <button class="rps-btn" onclick="chooseRPS('rock')">✊</button>
+      <button class="rps-btn" onclick="chooseRPS('paper')">✋</button>
+      <button class="rps-btn" onclick="chooseRPS('scissors')">✌️</button>
+    </div>
+
+    <!-- Spectator Betting Options -->
+    <div class="bet-box" id="spectator-tools">
+      <span>Đặt Cược:</span>
+      <button class="bet-btn" onclick="placeBet('P1', 100)">P1 (100 xu)</button>
+      <button class="bet-btn" onclick="placeBet('P2', 100)">P2 (100 xu)</button>
+      <button class="bet-btn" style="background:#8e44ad" onclick="predictWinner('P1')">Đoán P1 Thắng Ván (x3)</button>
+      <button class="bet-btn" style="background:#8e44ad" onclick="predictWinner('P2')">Đoán P2 Thắng Ván (x3)</button>
+    </div>
   </div>
 
-  <button class="reset-btn" onclick="initGame()">Chơi Lại</button>
+  <!-- Role Selection Overlay -->
+  <div class="overlay" id="role-modal">
+    <div class="modal-card">
+      <h2>OẲN TÙ TÌ CẮT DÂY</h2>
+      <p>Chọn vai trò tham gia trận đấu:</p>
+      <button class="action-btn" onclick="selectRole('player')">🎮 Vào Ghế Người Chơi</button>
+      <button class="action-btn" style="background: #3498db;" onclick="selectRole('spectator')">👁️ Làm Khán Giả (-10 xu/lượt)</button>
+    </div>
+  </div>
 </div>
 
 <script>
-  const TOTAL_WIRES = 5;
-  let bombWireIndex = -1;
-  let safeWiresRemaining = 0;
-  let canCutWire = false;
+  // Game State
+  let coins = 100000;
+  let role = 'spectator'; // 'p1', 'p2', 'spectator'
+  let p1SecretDeadWire = -1, p2SecretDeadWire = -1;
+  let p1Move = null, p2Move = null;
+  let p1Bets = 0, p2Bets = 0;
+  let myBet = { target: null, amount: 0, isMatchBet: false };
+  let currentRoundWinner = null; // 'P1' or 'P2'
 
-  const statusText = document.getElementById('status-text');
-  const wiresGrid = document.getElementById('wires-grid');
-  
-  const rpsButtons = [
-    document.getElementById('btn-rock'),
-    document.getElementById('btn-paper'),
-    document.getElementById('btn-scissors')
-  ];
-
-  function initGame() {
-    // 1. Reset variables
-    bombWireIndex = Math.floor(Math.random() * TOTAL_WIRES);
-    safeWiresRemaining = TOTAL_WIRES - 1;
-    canCutWire = false;
-
-    // 2. Reset UI Status
-    statusText.innerText = "Hãy chọn Kéo, Búa hoặc Bao để đấu với Máy!";
-    statusText.style.color = "#ffffff";
-
-    // 3. Enable RPS Buttons
-    setRPSActive(true);
-
-    // 4. Render Wires
-    wiresGrid.innerHTML = '';
-    for (let i = 0; i < TOTAL_WIRES; i++) {
-      const btn = document.createElement('button');
-      btn.className = `wire-btn wire-${i}`;
-      btn.innerText = `Sợi dây #${i + 1}`;
-      btn.id = `wire-${i}`;
-      btn.disabled = true; // Blocked until player wins RPS
-      btn.onclick = () => cutWire(i);
-      wiresGrid.appendChild(btn);
+  // Audio Context (Synth Audio - Không dùng mp3 ngoài)
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playSound(type) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    
+    if (type === 'ambient') {
+      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'tension') {
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    } else if (type === 'boom') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 1);
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      osc.start(); osc.stop(audioCtx.currentTime + 1);
     }
   }
 
-  function setRPSActive(active) {
-    rpsButtons.forEach(btn => btn.disabled = !active);
-  }
+  // Initialize Wires
+  function renderWires() {
+    const p1Grid = document.getElementById('p1-wires');
+    const p2Grid = document.getElementById('p2-wires');
+    p1Grid.innerHTML = ''; p2Grid.innerHTML = '';
 
-  function setWiresActive(active) {
-    for (let i = 0; i < TOTAL_WIRES; i++) {
-      const wire = document.getElementById(`wire-${i}`);
-      if (!wire.classList.contains('cut')) {
-        wire.disabled = !active;
-      }
+    for (let i = 1; i <= 10; i++) {
+      p1Grid.innerHTML += `<button class="wire-item" id="p1-w-${i}" onclick="handleWireCut('P1', ${i})">Dây ${i}</button>`;
+      p2Grid.innerHTML += `<button class="wire-item" id="p2-w-${i}" onclick="handleWireCut('P2', ${i})">Dây ${i}</button>`;
     }
   }
 
-  function playRPS(playerChoice) {
-    const choices = ['rock', 'paper', 'scissors'];
-    const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
-    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
-
-    let resultMsg = `Bạn: ${emojis[playerChoice]} vs Máy: ${emojis[computerChoice]} -> `;
-
-    if (playerChoice === computerChoice) {
-      statusText.innerText = resultMsg + "HÒA! Hãy đấu lại.";
-      statusText.style.color = "#f1c40f";
-    } else if (
-      (playerChoice === 'rock' && computerChoice === 'scissors') ||
-      (playerChoice === 'paper' && computerChoice === 'rock') ||
-      (playerChoice === 'scissors' && computerChoice === 'paper')
-    ) {
-      statusText.innerText = resultMsg + "THẮNG! Chọn 1 sợi dây để cắt.";
-      statusText.style.color = "#2ecc71";
-      canCutWire = true;
-      setRPSActive(false);
-      setWiresActive(true);
+  function selectRole(chosenRole) {
+    document.getElementById('role-modal').style.display = 'none';
+    if (chosenRole === 'player') {
+      role = 'p1';
+      document.getElementById('p1-name').innerText = "🔴 P1: Bạn";
+      document.getElementById('p2-name').innerText = "🔵 P2: Máy (BOT)";
+      // Bot làm khán giả/đối thủ phụ
+      p2SecretDeadWire = Math.floor(Math.random() * 10) + 1;
+      promptSecretWireChoice();
     } else {
-      statusText.innerText = resultMsg + "THUA! Máy đã chọn cắt giúp bạn...";
-      statusText.style.color = "#e74c3c";
-      setRPSActive(false);
-      
-      // Computer cuts a random available wire
-      setTimeout(() => {
-        botCutRandomWire();
-      }, 1000);
+      role = 'spectator';
+      document.getElementById('p1-name').innerText = "🔴 P1: Máy A";
+      document.getElementById('p2-name').innerText = "🔵 P2: Máy B";
+      p1SecretDeadWire = Math.floor(Math.random() * 10) + 1;
+      p2SecretDeadWire = Math.floor(Math.random() * 10) + 1;
+      startRPSPhase();
     }
+    document.getElementById('user-role').innerText = role.toUpperCase();
   }
 
-  function cutWire(index) {
-    const wireBtn = document.getElementById(`wire-${index}`);
+  function promptSecretWireChoice() {
+    let chosen = prompt("Chọn 1 dây chết bí mật cho bạn (từ 1 đến 10):", "5");
+    p1SecretDeadWire = parseInt(chosen) || 1;
+    startRPSPhase();
+  }
+
+  // Phase 1: 10s Oẳn tù tì
+  function startRPSPhase() {
+    if (role === 'spectator') coins -= 10; // Trừ 10 xu khán giả mỗi lượt
+    updateUI();
+
+    let timeLeft = 10;
+    document.getElementById('game-status').innerText = "BƯỚC 1: Chọn Kéo Búa Bao (10s)";
+    
+    let timer = setInterval(() => {
+      document.getElementById('timer').innerText = timeLeft + "s";
+      timeLeft--;
+      if (timeLeft < 0) {
+        clearInterval(timer);
+        if (!p1Move) p1Move = ['rock', 'paper', 'scissors'][Math.floor(Math.random()*3)];
+        if (!p2Move) p2Move = ['rock', 'paper', 'scissors'][Math.floor(Math.random()*3)];
+        revealRPSResult();
+      }
+    }, 1000);
+  }
+
+  function chooseRPS(move) {
+    if (role === 'p1') p1Move = move;
+    playSound('ambient');
+  }
+
+  // Phase 2: 2s Hiện kết quả
+  function revealRPSResult() {
+    const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
+    document.getElementById('p1-move').innerText = emojis[p1Move];
+    document.getElementById('p2-move').innerText = emojis[p2Move];
+
+    document.getElementById('game-status').innerText = "BƯỚC 2: Kết quả...";
+    
+    // Logic Thắng/Thua RPS
+    if (p1Move === p2Move) {
+      currentRoundWinner = null;
+    } else if (
+      (p1Move === 'rock' && p2Move === 'scissors') ||
+      (p1Move === 'paper' && p2Move === 'rock') ||
+      (p1Move === 'scissors' && p2Move === 'paper')
+    ) {
+      currentRoundWinner = 'P1';
+    } else {
+      currentRoundWinner = 'P2';
+    }
+
+    setTimeout(() => {
+      if (currentRoundWinner) {
+        startCuttingPhase();
+      } else {
+        // Hòa, làm lại
+        p1Move = null; p2Move = null;
+        startRPSPhase();
+      }
+    }, 2000);
+  }
+
+  // Phase 3: 7s Cắt dây
+  function startCuttingPhase() {
+    let timeLeft = 7;
+    document.getElementById('game-status').innerText = `BƯỚC 3: ${currentRoundWinner} Cắt dây đối thủ (7s)`;
+    playSound('tension');
+
+    let timer = setInterval(() => {
+      document.getElementById('timer').innerText = timeLeft + "s";
+      timeLeft--;
+      if (timeLeft < 0) {
+        clearInterval(timer);
+        // Tự động cắt ngẫu nhiên nếu bỏ lượt
+        let targetSide = currentRoundWinner === 'P1' ? 'P2' : 'P1';
+        handleWireCut(targetSide, Math.floor(Math.random() * 10) + 1);
+      }
+    }, 1000);
+  }
+
+  function handleWireCut(targetPlayer, wireNum) {
+    const wireBtn = document.getElementById(`${targetPlayer.toLowerCase()}-w-${wireNum}`);
+    if (wireBtn.classList.contains('cut')) return;
+
     wireBtn.classList.add('cut');
     wireBtn.disabled = true;
 
-    if (index === bombWireIndex) {
-      // Hit Bomb
-      statusText.innerText = "💥 BÙM! Bạn cắt trúng dây bom! GAME OVER.";
-      statusText.style.color = "#ff4757";
-      endGame();
+    let hitDeadWire = false;
+    if (targetPlayer === 'P1' && wireNum === p1SecretDeadWire) hitDeadWire = true;
+    if (targetPlayer === 'P2' && wireNum === p2SecretDeadWire) hitDeadWire = true;
+
+    if (hitDeadWire) {
+      playSound('boom');
+      alert(`💥 BÙM! ${targetPlayer} bị nổ do cắt trúng dây chết #${wireNum}!`);
+      resolveMatchWinner(targetPlayer === 'P1' ? 'P2' : 'P1');
     } else {
-      // Safe Wire
-      safeWiresRemaining--;
-      if (safeWiresRemaining === 0) {
-        statusText.innerText = "🎉 CHÚC MỪNG! Bạn đã vô hiệu hóa hoàn toàn quả bom!";
-        statusText.style.color = "#2ecc71";
-        endGame();
-      } else {
-        statusText.innerText = `An toàn! Cần cắt thêm ${safeWiresRemaining} dây nữa. Hãy đấu Oẳn tù tì tiếp.`;
-        statusText.style.color = "#ffffff";
-        canCutWire = false;
-        setWiresActive(false);
-        setRPSActive(true);
-      }
+      playSound('ambient');
+      // Tiếp tục vòng chơi mới
+      p1Move = null; p2Move = null;
+      startRPSPhase();
     }
   }
 
-  function botCutRandomWire() {
-    let uncutIndices = [];
-    for (let i = 0; i < TOTAL_WIRES; i++) {
-      const wire = document.getElementById(`wire-${i}`);
-      if (!wire.classList.contains('cut')) {
-        uncutIndices.push(i);
-      }
+  // Đặt cược cho Khán Giả
+  function placeBet(player, amount) {
+    if (coins < amount) return alert("Không đủ xu!");
+    coins -= amount;
+    if (player === 'P1') p1Bets += amount; else p2Bets += amount;
+    myBet = { target: player, amount: amount, isMatchBet: false };
+    updateUI();
+  }
+
+  function predictWinner(player) {
+    let amount = 500;
+    if (coins < amount) return alert("Không đủ xu!");
+    coins -= amount;
+    myBet = { target: player, amount: amount, isMatchBet: true };
+    alert(`Đã cược 500 xu cho ${player} thắng ván (x3)`);
+    updateUI();
+  }
+
+  function resolveMatchWinner(winner) {
+    // Trả thưởng cược
+    if (myBet.target === winner) {
+      let multiplier = myBet.isMatchBet ? 3 : 2;
+      coins += myBet.amount * multiplier;
+      alert(`🎉 Bạn đã thắng cược và nhận được ${myBet.amount * multiplier} xu!`);
     }
 
-    const randomIndex = uncutIndices[Math.floor(Math.random() * uncutIndices.length)];
-    cutWire(randomIndex);
+    // Chia 1/2 tổng xu cược cho người chơi thắng
+    if (role === winner.toLowerCase()) {
+      let totalPool = p1Bets + p2Bets;
+      coins += totalPool / 2;
+      alert(`🎮 Với tư cách người chơi, bạn nhận được ${totalPool / 2} xu thưởng từ khán giả!`);
+    }
+
+    // Reset lại game
+    document.getElementById('role-modal').style.display = 'flex';
+    renderWires();
   }
 
-  function endGame() {
-    setRPSActive(false);
-    setWiresActive(false);
+  function updateUI() {
+    document.getElementById('user-coins').innerText = coins;
+    document.getElementById('p1-bets').innerText = `Cược: ${p1Bets} Xu`;
+    document.getElementById('p2-bets').innerText = `Cược: ${p2Bets} Xu`;
   }
 
-  // Run on load
-  initGame();
+  renderWires();
 </script>
-
 </body>
 </html>
