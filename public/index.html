@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây - Tạo & Nhập Phòng</title>
+  <title>Oẳn Tù Tì Cắt Dây - FULL LOGIC + CHAT & EMOTE</title>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@800;900&display=swap');
@@ -22,8 +22,8 @@
 
     .game-container {
       width: 100%;
-      max-width: 1100px;
-      height: 640px;
+      max-width: 1150px;
+      height: 680px;
       background: radial-gradient(circle at center, #6bc5ff 0%, #205bc7 100%);
       border: 6px solid #0e2a63;
       border-radius: 28px;
@@ -45,7 +45,7 @@
       background: #1b4594; border: 3px solid #0d285c; border-radius: 18px;
       padding: 6px 14px 6px 6px; display: flex; align-items: center; gap: 10px;
     }
-    .avatar-frame { width: 50px; height: 50px; background: #ffd200; border: 3px solid #fff; border-radius: 12px; overflow: hidden; }
+    .avatar-frame { width: 45px; height: 45px; background: #ffd200; border: 3px solid #fff; border-radius: 12px; overflow: hidden; }
     .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
     
     .currency-pill {
@@ -55,7 +55,7 @@
     }
 
     .main-logo {
-      font-family: 'Bungee', cursive; text-align: center; font-size: 30px; color: #fff200;
+      font-family: 'Bungee', cursive; text-align: center; font-size: 32px; color: #fff200;
       text-shadow: 4px 4px 0 #b32d00, -2px -2px 0 #000;
       animation: floatLogo 3s ease-in-out infinite;
     }
@@ -64,25 +64,25 @@
 
     /* LOBBY CHỌN & NHẬP PHÒNG */
     .lobby-box {
-      background: rgba(13, 33, 74, 0.85);
+      background: rgba(13, 33, 74, 0.88);
       border: 4px solid #2d60bd;
       border-radius: 24px;
       padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
       width: 480px;
       margin: 0 auto;
     }
 
     .room-input {
-      width: 80%;
+      width: 85%;
       padding: 10px;
       border-radius: 14px;
       border: 3px solid #ffd200;
       font-family: 'Bungee';
-      font-size: 20px;
+      font-size: 18px;
       text-align: center;
       outline: none;
       background: #091738;
@@ -91,27 +91,50 @@
 
     .btn-action {
       background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
-      border: 3px solid #fff; border-radius: 16px; padding: 10px 24px;
-      font-family: 'Bungee'; font-size: 16px; color: #000; cursor: pointer;
+      border: 3px solid #fff; border-radius: 16px; padding: 10px 20px;
+      font-family: 'Bungee'; font-size: 14px; color: #000; cursor: pointer;
       box-shadow: 0 4px 0 #8c5a00; transition: transform 0.1s;
-      width: 80%;
+      width: 85%;
     }
     .btn-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #8c5a00; }
     .btn-blue { background: linear-gradient(180deg, #00d2ff 0%, #0066cc 100%); color: #fff; box-shadow: 0 4px 0 #003366; }
+    .btn-purple { background: linear-gradient(180deg, #d23bff 0%, #7b00b8 100%); color: #fff; box-shadow: 0 4px 0 #430063; }
 
-    /* BATTLE ARENA & 10 DÂY */
-    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 360px; }
-    .wire-column { display: flex; flex-direction: column; gap: 5px; width: 220px; }
+    /* LAYOUT BÀN ĐẤU & CHAT */
+    .battle-main-layout { display: flex; gap: 15px; height: 480px; }
+    .arena-section { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    
+    /* BẢNG CHAT */
+    .chat-section {
+      width: 280px; background: rgba(10, 24, 56, 0.9);
+      border: 3px solid #2854ad; border-radius: 20px;
+      display: flex; flex-direction: column; padding: 10px; gap: 8px;
+    }
+    .chat-title { font-family: 'Bungee'; font-size: 12px; color: #ffeb3b; text-align: center; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; background: #061026; border-radius: 12px;
+      padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 12px;
+    }
+    .chat-msg-item { background: #162f63; padding: 5px 8px; border-radius: 8px; word-break: break-word; }
+    .chat-input-row { display: flex; gap: 5px; }
+    .chat-input {
+      flex: 1; background: #091738; border: 2px solid #2854ad;
+      border-radius: 10px; color: #fff; padding: 6px; font-size: 12px; outline: none;
+    }
+
+    /* BÀN CẮT DÂY */
+    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 320px; }
+    .wire-column { display: flex; flex-direction: column; gap: 5px; width: 180px; }
     .wire-item {
-      height: 28px; background: linear-gradient(90deg, #ff3b3b, #b30000);
+      height: 26px; background: linear-gradient(90deg, #ff3b3b, #b30000);
       border: 2px solid #fff; border-radius: 14px; display: flex;
       justify-content: space-between; align-items: center; padding: 0 10px;
-      font-family: 'Bungee'; font-size: 11px; cursor: pointer;
+      font-family: 'Bungee'; font-size: 10px; cursor: pointer;
     }
     .wire-item.blue { background: linear-gradient(90deg, #0099ff, #0044cc); }
 
     .timer-badge {
-      font-family: 'Bungee'; font-size: 18px; background: #ff3366;
+      font-family: 'Bungee'; font-size: 16px; background: #ff3366;
       border: 3px solid #fff; padding: 4px 14px; border-radius: 30px;
     }
 
@@ -120,7 +143,26 @@
       padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;
     }
 
-    /* MODAL CHỌN DÂY CHẾT */
+    /* BẢNG EMOTE */
+    .emote-bar { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; }
+    .btn-emote {
+      background: #1b3d82; border: 2px solid #3b6ed4; border-radius: 10px;
+      padding: 4px 8px; font-size: 18px; cursor: pointer; transition: transform 0.1s;
+    }
+    .btn-emote:hover { transform: scale(1.2); }
+
+    /* POPUP BONG BÓNG EMOTE */
+    .emote-pop {
+      position: absolute; font-size: 50px; animation: popUpAnim 1.5s ease-out forwards;
+      pointer-events: none; z-index: 99;
+    }
+    @keyframes popUpAnim {
+      0% { opacity: 0; transform: translateY(0) scale(0.5); }
+      50% { opacity: 1; transform: translateY(-30px) scale(1.2); }
+      100% { opacity: 0; transform: translateY(-60px) scale(1); }
+    }
+
+    /* MODAL */
     .modal-overlay {
       position: absolute; top:0; left:0; width:100%; height:100%;
       background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
@@ -145,20 +187,25 @@
       <div class="currency-pill">🪙 <span id="txtCoins">10,000</span></div>
     </div>
 
-    <!-- MÀN HÌNH TẠO / NHẬP PHÒNG (MENU) -->
+    <!-- MÀN HÌNH TẠO / NHẬP PHÒNG -->
     <div class="screen active" id="screenMenu">
       <div class="main-logo">OẮN TÙ TÌ<br><span style="color:#00ff66;">CẮT DÂY</span></div>
 
       <div class="lobby-box">
-        <button class="btn-action" onclick="createNewRoom()">➕ TẠO PHÒNG MỚI</button>
-        
-        <div style="width:100%; border-top: 2px dashed #2d60bd; margin: 5px 0;"></div>
+        <h3 style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;">1. TẠO PHÒNG MỚI</h3>
+        <div style="display:flex; gap:10px; width:85%;">
+          <button class="btn-action" style="flex:1;" onclick="createNewRoom('player')">🎮 LÀM NGƯỜI CHƠI</button>
+          <button class="btn-action btn-purple" style="flex:1;" onclick="createNewRoom('spectator')">👁️ LÀM KHÁN GIẢ</button>
+        </div>
 
-        <input type="text" id="inputRoomId" class="room-input" placeholder="NHẬP MÃ PHÒNG (4 SỐ)" maxlength="4">
+        <div style="width:100%; border-top: 2px dashed #2d60bd; margin: 4px 0;"></div>
+
+        <h3 style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;">2. NHẬP MÃ PHÒNG CÓ SẴN</h3>
+        <input type="text" id="inputRoomId" class="room-input" placeholder="NHẬP MÃ 4 SỐ" maxlength="4">
         
-        <div style="display:flex; gap:10px; width:80%;">
-          <button class="btn-action btn-blue" style="flex:1;" onclick="joinRoom('player')">🎮 CHƠI</button>
-          <button class="btn-action btn-blue" style="flex:1; background:#9c27b0;" onclick="joinRoom('spectator')">👁️ KHÁN GIẢ</button>
+        <div style="display:flex; gap:10px; width:85%;">
+          <button class="btn-action btn-blue" style="flex:1;" onclick="joinRoom('player')">VÀO CHƠI</button>
+          <button class="btn-action btn-purple" style="flex:1;" onclick="joinRoom('spectator')">VÀO XEM</button>
         </div>
       </div>
     </div>
@@ -168,37 +215,77 @@
       <div style="display:flex; justify-content:space-between; align-items:center; z-index:5;">
         <div style="display:flex; gap:10px; align-items:center;">
           <span style="font-family:'Bungee'; background:#183875; padding:4px 12px; border-radius:12px; border:2px solid #fff;" id="roomDisplayCode">MÃ: ----</span>
-          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:13px;" id="statusMsg">Đang chờ đủ 2 người chơi...</span>
+          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:12px;" id="statusMsg">Đang chờ đủ 2 người chơi...</span>
         </div>
+        
+        <!-- NÚT XIN LÀM NGƯỜI CHƠI (HIỆN KHI LÀ KHÁN GIẢ) -->
+        <button id="btnRequestPlay" onclick="requestToPlay()" class="btn-action btn-purple" style="width:auto; padding:4px 12px; font-size:11px; display:none;">✋ XIN LÀM NGƯỜI CHƠI</button>
+        
         <div class="timer-badge" id="timerTxt">⏱️ 15s</div>
-        <button onclick="leaveBattle()" class="btn-action" style="width:auto; padding:4px 12px; background:#ff3366; color:#fff; font-size:12px;">Thoát</button>
+        <button onclick="leaveBattle()" class="btn-action" style="width:auto; padding:4px 12px; background:#ff3366; color:#fff; font-size:11px;">Thoát</button>
       </div>
 
-      <div class="battle-arena">
-        <div class="wire-column" id="p1WireCol"></div>
-        <div style="text-align:center;">
-          <div id="handP1" style="font-size:70px;">✋</div>
-          <div style="font-family:'Bungee'; font-size:20px; color:#ffeb3b;">VS</div>
-          <div id="handP2" style="font-size:70px;">✊</div>
+      <div class="battle-main-layout">
+        <!-- ARENA CẮT DÂY -->
+        <div class="arena-section">
+          <div class="battle-arena" id="arenaBox">
+            <div class="wire-column" id="p1WireCol"></div>
+            <div style="text-align:center;">
+              <div id="handP1" style="font-size:60px;">✋</div>
+              <div style="font-family:'Bungee'; font-size:18px; color:#ffeb3b;">VS</div>
+              <div id="handP2" style="font-size:60px;">✊</div>
+            </div>
+            <div class="wire-column" id="p2WireCol"></div>
+          </div>
+
+          <!-- EMOTE BAR & ACTION -->
+          <div class="bet-bar">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:10px; color:#a2c4ff;">Gửi Emote trêu ghẹo:</span>
+              <div class="emote-bar">
+                <button class="btn-emote" onclick="sendEmote('🤡')">🤡</button>
+                <button class="btn-emote" onclick="sendEmote('🤣')">🤣</button>
+                <button class="btn-emote" onclick="sendEmote('💩')">💩</button>
+                <button class="btn-emote" onclick="sendEmote('💣')">💣</button>
+                <button class="btn-emote" onclick="sendEmote('✂️')">✂️</button>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:6px;" id="rpsBtnGroup">
+              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('rock')">✊ Búa</button>
+              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('paper')">✋ Bao</button>
+              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('scissors')">✌️ Kéo</button>
+            </div>
+          </div>
         </div>
-        <div class="wire-column" id="p2WireCol"></div>
-      </div>
 
-      <!-- ĐẶT CƯỢC VÀ CHỌN OẮN TÙ TÌ -->
-      <div class="bet-bar">
-        <div style="font-family:'Bungee'; font-size:12px;" id="betInfoTxt">Số người trong phòng: 1/2</div>
-        <div style="display:flex; gap:8px;" id="rpsBtnGroup">
-          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('rock')">✊ Búa</button>
-          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('paper')">✋ Bao</button>
-          <button class="btn-action" style="width:auto; padding:6px 14px; font-size:12px;" onclick="chooseRPS('scissors')">✌️ Kéo</button>
+        <!-- KHUNG CHAT RIÊNG -->
+        <div class="chat-section">
+          <div class="chat-title">💬 CHAT TRONG PHÒNG</div>
+          <div class="chat-messages" id="chatBox">
+            <div class="chat-msg-item"><b>Hệ thống:</b> Chào mừng bạn vào phòng!</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+            <button class="btn-action" style="width:auto; padding:4px 10px; font-size:11px;" onclick="sendChatMessage()">Gửi</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- MODAL CHỌN DÂY CHẾT BAN ĐẦU -->
+    <!-- MODAL CHỌN DÂY CHẾT -->
     <div class="modal-overlay" id="deadWireModal" style="display:none;">
       <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT (1-10)</h2>
       <div class="grid-select-dead" id="deadWireGrid"></div>
+    </div>
+
+    <!-- MODAL YÊU CẦU ĐỔI CHỖ -->
+    <div class="modal-overlay" id="swapRequestModal" style="display:none;">
+      <h3 style="font-family:'Bungee'; color:#ffeb3b; text-align:center;" id="swapMsgTxt">Khán giả muốn xin đổi chỗ làm Người chơi!</h3>
+      <div style="display:flex; gap:15px; margin-top:20px;">
+        <button class="btn-action" style="width:auto; padding:8px 20px;" onclick="acceptSwap(true)">ĐỒNG Ý</button>
+        <button class="btn-action" style="width:auto; padding:8px 20px; background:#ff3366; color:#fff;" onclick="acceptSwap(false)">TỪ CHỐI</button>
+      </div>
     </div>
 
   </div>
@@ -213,17 +300,16 @@
     let timerInterval = null;
     let myChoice = null;
 
-    // --- LOGIC TẠO & NHẬP PHÒNG ---
-    function createNewRoom() {
-      // Sinh mã phòng ngẫu nhiên 4 chữ số
+    // --- TẠO VÀ NHẬP PHÒNG ---
+    function createNewRoom(selectedRole) {
       currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-      enterBattleRoom(currentRoomId, 'player');
+      enterBattleRoom(currentRoomId, selectedRole);
     }
 
     function joinRoom(selectedRole) {
       const roomInput = document.getElementById('inputRoomId').value.trim();
       if (!roomInput || roomInput.length < 4) {
-        alert("Vui lòng nhập đủ mã phòng 4 chữ số!");
+        alert("Vui lòng nhập mã phòng 4 chữ số!");
         return;
       }
       currentRoomId = roomInput;
@@ -234,23 +320,24 @@
       role = userRole;
       document.getElementById('screenMenu').classList.remove('active');
       document.getElementById('screenBattle').classList.add('active');
-      document.getElementById('roomDisplayCode').innerText = "MÃ PHÒNG: " + roomId;
+      document.getElementById('roomDisplayCode').innerText = "MÃ: " + roomId;
 
       if (role === 'spectator') {
-        coins -= 10;
-        document.getElementById('txtCoins').innerText = coins;
         document.getElementById('roleTxt').innerText = "Khán Giả (Phòng " + roomId + ")";
         document.getElementById('rpsBtnGroup').style.display = 'none';
-        document.getElementById('betInfoTxt').innerText = "Cược Khán Giả: 100 Xu";
+        document.getElementById('btnRequestPlay').style.display = 'block';
         initWires();
+        addChatMessage("Hệ thống", "Bạn tham gia với vai trò Khán giả.");
         start10sPreparation();
       } else {
         document.getElementById('roleTxt').innerText = "Người Chơi (Phòng " + roomId + ")";
+        document.getElementById('rpsBtnGroup').style.display = 'flex';
+        document.getElementById('btnRequestPlay').style.display = 'none';
         openDeadWireModal();
       }
     }
 
-    // --- LỰA CHỌN DÂY CHẾT BAN ĐẦU ---
+    // --- CHỌN DÂY CHẾT & KIỂM TRA NGƯỜI CHƠI ---
     function openDeadWireModal() {
       const modal = document.getElementById('deadWireModal');
       const grid = document.getElementById('deadWireGrid');
@@ -273,17 +360,42 @@
     }
 
     function checkRoomPlayers() {
-      // Giả lập đủ 2 người sau 2 giây
       document.getElementById('statusMsg').innerText = "⏳ Đang đợi đối thủ vào phòng " + currentRoomId + "...";
       setTimeout(() => {
         playersInRoom = 2;
-        document.getElementById('betInfoTxt').innerText = "Số người: 2/2 (Đủ người)";
-        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người! Bắt đầu ra đòn 15s!";
+        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người! Bắt đầu lượt 15s!";
         start15sTimer();
       }, 2000);
     }
 
-    // --- ĐẾM NGƯỢC OẮN TÙ TÌ 15S ---
+    // --- XIN LÀM NGƯỜI CHƠI & ĐỔI CHỖ ---
+    function requestToPlay() {
+      addChatMessage("Bạn", "Đã gửi yêu cầu xin làm Người chơi...");
+      // Giả lập hiện thông báo xin đổi chỗ ở phía Người chơi
+      setTimeout(() => {
+        if (role === 'player') {
+          document.getElementById('swapRequestModal').style.display = 'flex';
+        } else {
+          // Giả lập Người chơi đồng ý đổi chỗ
+          alert("Người chơi đã ĐỒNG Ý đổi chỗ cho bạn!");
+          role = 'player';
+          enterBattleRoom(currentRoomId, 'player');
+        }
+      }, 1000);
+    }
+
+    function acceptSwap(isAccepted) {
+      document.getElementById('swapRequestModal').style.display = 'none';
+      if (isAccepted) {
+        addChatMessage("Hệ thống", "Bạn đã đồng ý đổi chỗ cho Khán giả!");
+        role = 'spectator';
+        enterBattleRoom(currentRoomId, 'spectator');
+      } else {
+        addChatMessage("Hệ thống", "Bạn đã từ chối yêu cầu đổi chỗ.");
+      }
+    }
+
+    // --- ĐẾM NGƯỢC 15S & XỬ LÝ OẮN TÙ TÌ ---
     function start15sTimer() {
       timer = 15;
       myChoice = null;
@@ -299,7 +411,7 @@
           if (!myChoice && role === 'player') {
             const choices = ['rock', 'paper', 'scissors'];
             myChoice = choices[Math.floor(Math.random() * 3)];
-            document.getElementById('statusMsg').innerText = "⚠️ Tự động chọn Búa/Bao/Kéo!";
+            document.getElementById('statusMsg').innerText = "⚠️ Tự động ra bài ngẫu nhiên!";
           }
           resolveRPS();
         }
@@ -308,7 +420,7 @@
 
     function chooseRPS(choice) {
       myChoice = choice;
-      document.getElementById('statusMsg').innerText = "✅ Đã chốt kèo! Chờ đối thủ...";
+      document.getElementById('statusMsg').innerText = "✅ Đã chốt đòn!";
     }
 
     function resolveRPS() {
@@ -319,17 +431,10 @@
       document.getElementById('handP1').innerText = icons[myChoice || 'rock'];
       document.getElementById('handP2').innerText = icons[oppChoice];
 
-      document.getElementById('statusMsg').innerText = "🎉 Trận đấu hoàn tất! Trả thưởng khán giả...";
-      
-      if (role === 'spectator') {
-        coins += 200;
-        document.getElementById('txtCoins').innerText = coins;
-      }
-
+      document.getElementById('statusMsg').innerText = "🎉 Hoàn tất lượt đấu! Chuẩn bị lượt mới...";
       start10sPreparation();
     }
 
-    // --- 10S CHUẨN BỊ VÒNG MỚI ---
     function start10sPreparation() {
       let prepTime = 10;
       document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
@@ -342,6 +447,38 @@
           if (role === 'player') start15sTimer();
         }
       }, 1000);
+    }
+
+    // --- CHAT & EMOTE TRÊU GHẸO ---
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      addChatMessage("Bạn", text);
+      input.value = '';
+    }
+
+    function addChatMessage(sender, text) {
+      const chatBox = document.getElementById('chatBox');
+      const msgItem = document.createElement('div');
+      msgItem.className = 'chat-msg-item';
+      msgItem.innerHTML = `<b>${sender}:</b> ${text}`;
+      chatBox.appendChild(msgItem);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendEmote(emoji) {
+      // Bắn emote trực tiếp lên màn hình arena
+      const arena = document.getElementById('arenaBox');
+      const pop = document.createElement('div');
+      pop.className = 'emote-pop';
+      pop.innerText = emoji;
+      pop.style.left = (Math.random() * 60 + 20) + '%';
+      pop.style.top = (Math.random() * 40 + 30) + '%';
+      arena.appendChild(pop);
+
+      setTimeout(() => pop.remove(), 1500);
     }
 
     function initWires() {
