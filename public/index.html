@@ -3,457 +3,465 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây 10 Dây - Chibi Chill Edition</title>
+  <title>Oẳn Tù Tì Cắt Dây - Cartoon Edition</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@800;900&display=swap');
 
-    :root {
-      --bg-main: #0f111a;
-      --card-bg: #1c1e2e;
-      --accent-yellow: #ffcc00;
-      --accent-red: #ff3366;
-      --accent-blue: #00d2ff;
-      --accent-green: #00e676;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; }
 
     body {
-      background: radial-gradient(circle at center, #1b1e31 0%, #08090e 100%);
+      background: #3a88e9 linear-gradient(180deg, #5bb4ff 0%, #1e52ad 100%);
       color: #fff;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* MÀN HÌNH CHÍNH GAME CONTAINER */
+    .game-container {
+      width: 100%;
+      max-width: 1100px;
+      height: 640px;
+      background: radial-gradient(circle at center, #6bc5ff 0%, #205bc7 100%);
+      border: 6px solid #0e2a63;
+      border-radius: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,255,255,0.3);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       padding: 15px;
     }
 
-    .game-card {
-      width: 100%;
-      max-width: 500px;
-      background: var(--card-bg);
-      border: 4px solid #2d324d;
-      border-radius: 28px;
-      padding: 20px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-      text-align: center;
+    /* BỐ CỤC TRANG SẢNH MENU (SCREEN 1) & TRẬN ĐẤU (SCREEN 2) */
+    .screen { display: none; width: 100%; height: 100%; position: absolute; top:0; left:0; padding:15px; }
+    .screen.active { display: flex; flex-direction: column; justify-content: space-between; }
+
+    /* HEADER & PLAYER INFO BAR */
+    .top-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
     }
 
-    h1 {
+    .profile-card {
+      background: #1b4594;
+      border: 3px solid #0d285c;
+      border-radius: 18px;
+      padding: 6px 14px 6px 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 5px 0 #091a3e;
+      position: relative;
+    }
+
+    .avatar-frame {
+      width: 50px;
+      height: 50px;
+      background: #ffd200;
+      border: 3px solid #fff;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+    .player-meta { display: flex; flex-direction: column; }
+    .player-name { font-family: 'Bungee'; font-size: 13px; color: #fff; text-shadow: 1px 1px 0 #000; }
+    .level-badge {
+      position: absolute; right: -10px; top: -5px;
+      background: #ff9900; border: 2px solid #fff; border-radius: 8px;
+      font-family: 'Bungee'; font-size: 10px; padding: 2px 6px;
+    }
+
+    .currency-group { display: flex; gap: 10px; }
+    .currency-pill {
+      background: #122b61; border: 2px solid #2d60bd; border-radius: 20px;
+      padding: 4px 12px; display: flex; align-items: center; gap: 6px;
+      font-family: 'Bungee'; font-size: 12px; color: #ffeb3b;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* LOGO CHÍNH CÓ CHUYỂN ĐỘNG NẢY (BOUNCE) */
+    .main-logo {
       font-family: 'Bungee', cursive;
-      color: var(--accent-yellow);
-      font-size: 22px;
-      text-shadow: 2px 2px 0px #000;
-      margin-bottom: 10px;
+      text-align: center;
+      font-size: 32px;
+      color: #fff200;
+      text-shadow: 4px 4px 0 #b32d00, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+      animation: floatLogo 3s ease-in-out infinite;
+      margin-top: -10px;
     }
 
-    /* TOP BAR: WALLET, GOOGLE & MUSIC TOGGLE */
-    .top-bar {
+    @keyframes floatLogo {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    /* CARDS CHỌN CHẾ ĐỘ CHƠI */
+    .mode-selection {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #121420;
-      padding: 8px 15px;
-      border-radius: 50px;
-      margin-bottom: 15px;
-      border: 2px solid #282c44;
+      justify-content: center;
+      gap: 25px;
+      margin-top: 10px;
     }
 
-    .coin-badge {
-      font-weight: 900;
-      color: var(--accent-yellow);
-      font-size: 15px;
-    }
-
-    .btn-music {
-      background: #282c44;
-      border: 2px solid var(--accent-blue);
-      color: #fff;
-      border-radius: 50px;
-      padding: 4px 12px;
-      font-weight: 900;
-      font-size: 12px;
+    .mode-card {
+      width: 44%;
+      height: 220px;
+      border-radius: 24px;
+      border: 5px solid #fff;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    /* ARENA CHIBI PLAYERS */
-    .arena {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 15px 0;
-      background: #121420;
-      padding: 12px;
-      border-radius: 20px;
-      border: 2px solid #282c44;
-    }
-
-    .chibi-box {
+      position: relative;
       display: flex;
       flex-direction: column;
+      justify-content: flex-end;
       align-items: center;
-      width: 42%;
+      padding-bottom: 20px;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 12px 0 rgba(0,0,0,0.3);
     }
 
-    .chibi-img {
-      width: 75px;
-      height: 75px;
-      border-radius: 50%;
-      border: 3px solid var(--accent-yellow);
-      background: #2a2e45;
-      object-fit: cover;
+    .mode-card:hover { transform: translateY(-6px) scale(1.02); }
+    .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,0.3); }
+
+    .card-online { background: linear-gradient(180deg, #2bb1ff 0%, #005bb5 100%); border-color: #72d6ff; }
+    .card-friend { background: linear-gradient(180deg, #ffb700 0%, #d65900 100%); border-color: #ffe17d; }
+
+    .mode-btn-title {
+      font-family: 'Bungee';
+      font-size: 22px;
+      background: #fff;
+      color: #000;
+      padding: 6px 24px;
+      border-radius: 30px;
+      border: 3px solid #0d285c;
+      box-shadow: 0 4px 0 #0d285c;
     }
 
-    .player-tag {
-      margin-top: 5px;
-      font-weight: 900;
-      font-size: 13px;
-      color: var(--accent-blue);
-    }
-
-    /* BETTING & MODE SELECTION */
-    .setup-panel {
-      background: rgba(255,255,255,0.05);
-      border-radius: 16px;
-      padding: 12px;
-      margin-bottom: 15px;
-    }
-
-    .bet-options {
+    /* ARENA CHIẾN ĐẤU & 10 DÂY CẮT */
+    .battle-arena {
       display: flex;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      height: 380px;
+      position: relative;
+    }
+
+    .wire-column {
+      display: flex;
+      flex-direction: column;
       gap: 6px;
+      width: 220px;
+    }
+
+    .wire-item {
+      height: 28px;
+      background: linear-gradient(90deg, #ff3b3b, #b30000);
+      border: 2px solid #fff;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px;
+      font-family: 'Bungee';
+      font-size: 11px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #660000;
+      transition: all 0.2s;
+    }
+
+    .wire-item.blue { background: linear-gradient(90deg, #0099ff, #0044cc); box-shadow: 0 3px 0 #002266; }
+    .wire-item:hover { transform: scale(1.05); filter: brightness(1.2); }
+    .wire-item.cut { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; transform: none; }
+
+    /* HIỆU ỨNG TAY OẮN TÙ TÌ & SÉT VA ĐẬP */
+    .hand-clash-zone {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      display: flex;
       justify-content: center;
-      margin-top: 8px;
+      align-items: center;
     }
 
-    .btn-bet {
-      background: #282c44;
-      border: 2px solid #3d446b;
-      color: #fff;
-      padding: 4px 10px;
+    .hand-img {
+      width: 130px;
+      filter: drop-shadow(0 10px 0 rgba(0,0,0,0.3));
+      transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .hand-left { transform: scaleX(-1); }
+
+    .lightning-spark {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, #fff 10%, #00e5ff 40%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      animation: sparkAnim 0.3s ease-out;
+    }
+
+    @keyframes sparkAnim {
+      0% { transform: scale(0.2); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.8; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+
+    /* ĐẶT CƯỢC QUICK BET BAR */
+    .bet-bar {
+      background: #112652;
+      border: 3px solid #2854ad;
+      border-radius: 20px;
+      padding: 8px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .quick-bet-btns { display: flex; gap: 8px; }
+    .btn-quick {
+      background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
+      border: 2px solid #fff;
       border-radius: 12px;
-      font-weight: 900;
-      cursor: pointer;
-      font-size: 12px;
-    }
-
-    .btn-bet.active {
-      background: var(--accent-yellow);
+      padding: 4px 12px;
+      font-family: 'Bungee';
+      font-size: 11px;
       color: #000;
-      border-color: var(--accent-yellow);
-    }
-
-    /* WIRE GRID 10 DÂY */
-    .wire-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      margin: 15px 0;
-    }
-
-    .btn-wire-10 {
-      background: linear-gradient(180deg, #ff4757, #c0392b);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-weight: 900;
-      padding: 10px 0;
       cursor: pointer;
-      box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+      box-shadow: 0 3px 0 #8c5a00;
     }
 
-    .btn-wire-10:disabled {
-      background: #444;
-      opacity: 0.5;
-      cursor: not-allowed;
-      box-shadow: none;
+    .btn-quick:active { transform: translateY(2px); box-shadow: 0 1px 0 #8c5a00; }
+
+    /* FOOTER NAVBAR */
+    .bottom-nav {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      background: #0d214a;
+      border-radius: 20px 20px 0 0;
+      padding: 8px;
+      margin: 0 -15px -15px -15px;
     }
 
-    .btn-action {
-      font-family: 'Bungee', cursive;
-      width: 100%;
-      background: var(--accent-green);
-      color: #000;
-      padding: 12px;
-      border: none;
-      border-radius: 50px;
-      font-size: 15px;
+    .nav-item {
+      font-family: 'Bungee';
+      font-size: 11px;
+      padding: 6px 16px;
+      background: #183875;
+      border-radius: 12px;
       cursor: pointer;
-      box-shadow: 0 5px 0 #00ab55;
-      margin-top: 8px;
+      transition: 0.2s;
     }
 
-    .status-msg {
-      font-weight: 900;
-      font-size: 14px;
-      color: var(--accent-blue);
-      margin: 10px 0;
-      min-height: 24px;
+    .nav-item:hover { background: #2b57aa; }
+
+    /* SHAKE SCREEN ANIMATION */
+    .shake-screen { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
     }
   </style>
 </head>
 <body>
 
-  <div class="game-card">
-    <h1>✂️ OẮN TÙ TÌ CẮT DÂY 💣</h1>
+  <div class="game-container" id="gameWindow">
 
-    <!-- TOP BAR -->
-    <div class="top-bar">
-      <div class="coin-badge">💰 Xu: <span id="userCoins">5000</span></div>
-      <button class="btn-music" id="musicBtn" onclick="toggleMusic()">🎵 Nhạc: Bật</button>
-      <div id="authBox">
-        <div id="g_id_onload"
-          data-client_id="624410093822-dmhrvoeg1pk0lr474vp4pu1qbet332d9.apps.googleusercontent.com"
-          data-callback="handleCredentialResponse">
+    <!-- TOP HUD CHUNG -->
+    <div class="top-hud">
+      <div class="profile-card">
+        <div class="avatar-frame">
+          <img id="myAvatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=ProPlayer&backgroundColor=b6e3f4">
         </div>
-        <div class="g_id_signin" data-type="icon" data-shape="circle"></div>
+        <div class="player-meta">
+          <span class="player-name" id="myPlayerName">Player_Pro</span>
+          <span style="font-size:10px; color:#a2c4ff;">Tên: <b id="displaySubName">Player_Pro</b></span>
+        </div>
+        <div class="level-badge">Lv. 15</div>
+      </div>
+
+      <div class="currency-group">
+        <div class="currency-pill">🪙 <span id="txtCoins">10,500</span></div>
+        <div class="currency-pill" style="color:#00ffff;">💎 <span id="txtGems">250</span></div>
       </div>
     </div>
 
-    <!-- SÂN ĐẤU -->
-    <div class="arena">
-      <div class="chibi-box">
-        <img id="p1Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=P1&backgroundColor=b6e3f4">
-        <div id="p1Name" class="player-tag">Bạn (Người chơi)</div>
-      </div>
-      <div style="font-family:'Bungee'; color:var(--accent-red);">VS</div>
-      <div class="chibi-box">
-        <img id="p2Avatar" class="chibi-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=Guest&backgroundColor=ffdfbf">
-        <div id="p2Name" class="player-tag">Khách (-10 Xu)</div>
-      </div>
-    </div>
+    <!-- MÀN HÌNH 1: SẢNH CHỜ MAIN MENU -->
+    <div class="screen active" id="screenMenu">
+      <div class="main-logo">OẮN TÙ TÌ<br><span style="color:#00ff66;">CẮT DÂY</span></div>
 
-    <!-- CHỌN CHẾ ĐỘ & MỨC CƯỢC -->
-    <div class="setup-panel" id="setupPanel">
-      <p style="font-weight:900; font-size:13px;">1. Chọn Mức Cược Xu:</p>
-      <div class="bet-options">
-        <button class="btn-bet active" onclick="selectBet(1)">1</button>
-        <button class="btn-bet" onclick="selectBet(5)">5</button>
-        <button class="btn-bet" onclick="selectBet(10)">10</button>
-        <button class="btn-bet" onclick="selectBet(50)">50</button>
-        <button class="btn-bet" onclick="selectBet(100)">100</button>
-        <button class="btn-bet" onclick="selectBet(500)">500</button>
-        <button class="btn-bet" onclick="selectBet(1000)">1000</button>
-        <button class="btn-bet" onclick="selectBet(5000)">5000</button>
+      <div class="mode-selection">
+        <div class="mode-card card-online" onclick="startMatch('online')">
+          <div style="font-size: 60px; margin-bottom: 20px;">🌐</div>
+          <button class="mode-btn-title">CHƠI ONLINE</button>
+        </div>
+
+        <div class="mode-card card-friend" onclick="startMatch('friend')">
+          <div style="font-size: 60px; margin-bottom: 20px;">🤝</div>
+          <button class="mode-btn-title">CHƠI VỚI BẠN</button>
+        </div>
       </div>
 
-      <p style="font-weight:900; font-size:13px; margin-top:10px;">2. Vô Phòng Với Vai Trò:</p>
-      <div style="display:flex; gap:10px; margin-top:5px;">
-        <button class="btn-action" style="background:var(--accent-yellow); box-shadow:0 4px 0 #c7a000;" onclick="joinGame('player')">🎮 Người Chơi</button>
-        <button class="btn-action" style="background:#74b9ff; box-shadow:0 4px 0 #0984e3;" onclick="joinGame('spectator')">👁️ Khán Giả (-10 Xu)</button>
+      <div class="bottom-nav">
+        <div class="nav-item">🛒 CỬA HÀNG</div>
+        <div class="nav-item">🏆 XẾP HẠNG</div>
+        <div class="nav-item">📜 NHIỆM VỤ</div>
+        <div class="nav-item">👥 CỘNG ĐỒNG</div>
       </div>
     </div>
 
-    <div id="statusText" class="status-msg">Nút nhạc ở góc trên, bấm chơi ngay!</div>
+    <!-- MÀN HÌNH 2: TRẬN ĐẤU CẮT DÂY CARTOON -->
+    <div class="screen" id="screenBattle">
+      <div style="display:flex; justify-content:space-between; align-items:center; z-index:5;">
+        <span style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;" id="battleStatusMsg">Đang chờ đối thủ...</span>
+        <button onclick="leaveBattle()" class="btn-quick" style="background:#ff3366; color:#fff;">Thoát</button>
+      </div>
 
-    <!-- KHU VỰC CẮT 10 DÂY -->
-    <div class="wire-grid" id="wireGrid" style="display:none;"></div>
+      <div class="battle-arena">
+        <!-- 10 DÂY XANH P1 -->
+        <div class="wire-column" id="p1WireCol"></div>
 
-    <!-- NÚT OẮN TÙ TÌ -->
-    <div id="rpsButtons" style="display:none; gap:10px; margin-top:10px;">
-      <button class="btn-action" onclick="playRPS('rock')">✊ Búa</button>
-      <button class="btn-action" onclick="playRPS('paper')">✋ Bao</button>
-      <button class="btn-action" onclick="playRPS('scissors')">✌️ Kéo</button>
+        <!-- KHU VỰC VÀO KÈO OẮN TÙ TÌ -->
+        <div class="hand-clash-zone">
+          <div class="lightning-spark" id="sparkEffect"></div>
+          <div id="p1Hand" class="hand-img hand-left" style="font-size: 70px; text-align:center;">✋</div>
+          <div style="font-family:'Bungee'; font-size:28px; color:#ffeb3b; margin:0 15px;">VS</div>
+          <div id="p2Hand" class="hand-img" style="font-size: 70px; text-align:center;">✊</div>
+        </div>
+
+        <!-- 10 DÂY ĐỎ P2 -->
+        <div class="wire-column" id="p2WireCol"></div>
+      </div>
+
+      <!-- THANH ĐẶT CƯỢC QUỐC TẾ -->
+      <div class="bet-bar">
+        <div style="font-family:'Bungee'; font-size:12px;">Mức Cược: <span id="currentBetTxt" style="color:#ffcc00;">100</span> Vàng</div>
+        <div class="quick-bet-btns">
+          <button class="btn-quick" onclick="setBet(100)">100</button>
+          <button class="btn-quick" onclick="setBet(500)">500</button>
+          <button class="btn-quick" onclick="setBet(1000)">1k</button>
+          <button class="btn-quick" onclick="setBet(10000)">10k</button>
+        </div>
+        <button class="btn-quick" style="background:#00e676;" onclick="triggerRPS()">OẮN TÙ TÌ!</button>
+      </div>
     </div>
+
   </div>
 
   <script>
-    // --- TRÌNH PHÁT NHẠC NỀN CHILL CHẤT LƯỢNG CAO ---
-    const bgAudio = new Audio('https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3');
-    bgAudio.loop = true;
-    bgAudio.volume = 0.35; // Âm lượng êm dịu
-
-    let isMusicOn = true;
-
-    function toggleMusic() {
-      const musicBtn = document.getElementById('musicBtn');
-      if (isMusicOn) {
-        bgAudio.pause();
-        isMusicOn = false;
-        musicBtn.innerText = "🎵 Nhạc: Tắt";
-      } else {
-        bgAudio.play().catch(() => {});
-        isMusicOn = true;
-        musicBtn.innerText = "🎵 Nhạc: Bật";
-      }
-    }
-
-    // Tự động bật nhạc khi người dùng tương tác bất kỳ nút nào trên màn hình
-    document.body.addEventListener('click', () => {
-      if (isMusicOn && bgAudio.paused) {
-        bgAudio.play().catch(() => {});
-      }
-    }, { once: true });
-
-    // --- HIỆU ỨNG ÂM THANH HIỆN ĐẠI ---
+    // --- ÂM THANH GAME SYNTHESIZER ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSound(type) {
+    function playSfx(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
 
-      if (type === 'cut') {
+      if (type === 'clash') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
       } else if (type === 'boom') {
         osc.type = 'square';
-        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.6);
-        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.6);
-      } else if (type === 'win') {
-        [523, 659, 783, 1046].forEach((f, i) => {
-          setTimeout(() => {
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.value = f; g.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            o.start(); o.stop(audioCtx.currentTime + 0.18);
-          }, i * 80);
-        });
+        osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
       }
     }
 
-    // --- LOGIC GAME ---
-    let coins = 5000;
-    let selectedBet = 1;
-    let myRole = 'player';
-    let myDeadWire = null;
-    let oppDeadWire = Math.floor(Math.random() * 10) + 1;
-    let isMyTurnToCut = false;
+    // --- GAME LOGIC & CHUYỂN ĐỘNG ---
+    let myCoins = 10500;
+    let currentBet = 100;
+    let p2DeadWire = Math.floor(Math.random() * 10) + 1;
 
-    function selectBet(amount) {
-      selectedBet = amount;
-      document.querySelectorAll('.btn-bet').forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.innerText) === amount);
-      });
+    function setBet(val) {
+      currentBet = val;
+      document.getElementById('currentBetTxt').innerText = val.toLocaleString();
+      playSfx('clash');
     }
 
-    function joinGame(role) {
-      myRole = role;
-      if (role === 'spectator') {
-        if (coins < 10) { alert("Bạn không đủ 10 xu phí làm khách!"); return; }
-        coins -= 10;
-        document.getElementById('userCoins').innerText = coins;
-        document.getElementById('statusText').innerText = "👁️ Bạn tham gia với vai trò KHÁN GIẢ (-10 Xu phí).";
-        document.getElementById('setupPanel').style.display = 'none';
-        return;
-      }
-
-      document.getElementById('setupPanel').style.display = 'none';
-      document.getElementById('statusText').innerText = "💣 CHỌN DÂY CHẾT CỦA BẠN (Dây 1-10):";
-      renderWireGrid(true);
+    function startMatch(mode) {
+      document.getElementById('screenMenu').classList.remove('active');
+      document.getElementById('screenBattle').classList.add('active');
+      document.getElementById('battleStatusMsg').innerText = mode === 'online' ? "ĐÃ TÌM THẤY TRẬN ONLINE!" : "ĐANG TRONG PHÒNG BẠN (8899)";
+      initWires();
     }
 
-    function renderWireGrid(isSelectingDeadWire) {
-      const grid = document.getElementById('wireGrid');
-      grid.style.display = 'grid';
-      grid.innerHTML = '';
+    function leaveBattle() {
+      document.getElementById('screenBattle').classList.remove('active');
+      document.getElementById('screenMenu').classList.add('active');
+    }
+
+    function initWires() {
+      const p1Col = document.getElementById('p1WireCol');
+      const p2Col = document.getElementById('p2WireCol');
+      p1Col.innerHTML = ''; p2Col.innerHTML = '';
 
       for (let i = 1; i <= 10; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-wire-10';
-        btn.innerText = '✂️ Dây ' + i;
-        btn.onclick = () => {
-          if (isSelectingDeadWire) {
-            myDeadWire = i;
-            playSound('cut');
-            document.getElementById('statusText').innerText = `Dây chết của bạn là DÂY ${i}. Chuẩn bị Oẳn Tù Tì!`;
-            grid.style.display = 'none';
-            document.getElementById('rpsButtons').style.display = 'flex';
-          } else if (isMyTurnToCut) {
-            cutEnemyWire(i, btn);
-          }
-        };
-        grid.appendChild(btn);
+        // Dây P1
+        const w1 = document.createElement('div');
+        w1.className = 'wire-item blue';
+        w1.innerHTML = `<span>⚡ DÂY ${i}</span><span>${i}</span>`;
+        p1Col.appendChild(w1);
+
+        // Dây P2 (Cắt dây này)
+        const w2 = document.createElement('div');
+        w2.className = 'wire-item';
+        w2.innerHTML = `<span>${i}</span><span>DÂY ${i} ✂️</span>`;
+        w2.onclick = () => cutEnemyWire(i, w2);
+        p2Col.appendChild(w2);
       }
     }
 
-    function playRPS(myChoice) {
-      playSound('cut');
-      const choices = ['rock', 'paper', 'scissors'];
-      const oppChoice = choices[Math.floor(Math.random() * 3)];
-      
-      document.getElementById('rpsButtons').style.display = 'none';
+    function triggerRPS() {
+      const hands = ['✊', '✋', '✌️'];
+      const p1 = hands[Math.floor(Math.random() * 3)];
+      const p2 = hands[Math.floor(Math.random() * 3)];
 
-      if (myChoice === oppChoice) {
-        document.getElementById('statusText').innerText = "HÒA OẮN TÙ TÌ! Hãy ra lại...";
-        document.getElementById('rpsButtons').style.display = 'flex';
-      } else if (
-        (myChoice === 'rock' && oppChoice === 'scissors') ||
-        (myChoice === 'paper' && oppChoice === 'rock') ||
-        (myChoice === 'scissors' && oppChoice === 'paper')
-      ) {
-        playSound('win');
-        isMyTurnToCut = true;
-        document.getElementById('statusText').innerText = `🎉 THẮNG OẮN TÙ TÌ! Chọn 1 dây của đối thủ để CẮT!`;
-        renderWireGrid(false);
+      document.getElementById('p1Hand').innerText = p1;
+      document.getElementById('p2Hand').innerText = p2;
+
+      // Spark Effect Va Đập
+      const spark = document.getElementById('sparkEffect');
+      spark.style.animation = 'none';
+      setTimeout(() => spark.style.animation = 'sparkAnim 0.3s ease-out', 10);
+      playSfx('clash');
+
+      document.getElementById('battleStatusMsg').innerText = "THẮNG OẮN TÙ TÌ! CHỌN 1 DÂY ĐỐI THỦ ĐỂ CẮT!";
+    }
+
+    function cutEnemyWire(num, element) {
+      if (element.classList.contains('cut')) return;
+      element.classList.add('cut');
+
+      if (num === p2DeadWire) {
+        // NỔ DÂY CHẾT! RUNG MÀN HÌNH
+        playSfx('boom');
+        document.getElementById('gameWindow').classList.add('shake-screen');
+        setTimeout(() => document.getElementById('gameWindow').classList.remove('shake-screen'), 500);
+
+        myCoins += currentBet;
+        document.getElementById('txtCoins').innerText = myCoins.toLocaleString();
+        document.getElementById('battleStatusMsg').innerText = `💥 BÙM! CẮT TRÚNG DÂY CHẾT (${num})! THẮNG +${currentBet} VÀNG!`;
       } else {
-        document.getElementById('statusText').innerText = `❌ THUA OẮN TÙ TÌ! Đối thủ đang chọn cắt dây của bạn...`;
-        setTimeout(oppCutMyWire, 2000);
+        playSfx('clash');
+        document.getElementById('battleStatusMsg').innerText = `Cắt Dây ${num} An Toàn! Đổi lượt Oẳn Tù Tì.`;
       }
-    }
-
-    function cutEnemyWire(wireNum, btnElement) {
-      playSound('cut');
-      btnElement.disabled = true;
-      btnElement.innerText = "❌ Sứt";
-
-      if (wireNum === oppDeadWire) {
-        playSound('boom');
-        coins += selectedBet;
-        document.getElementById('userCoins').innerText = coins;
-        document.getElementById('statusText').innerText = `💥 BÙM! Cắt TRÚNG DÂY CHẾT đối thủ! Thắng +${selectedBet} Xu!`;
-        document.getElementById('wireGrid').style.display = 'none';
-      } else {
-        playSound('win');
-        document.getElementById('statusText').innerText = `An toàn! Dây ${wireNum} không phải dây chết. Đổi lượt Oẳn Tù Tì!`;
-        document.getElementById('wireGrid').style.display = 'none';
-        document.getElementById('rpsButtons').style.display = 'flex';
-      }
-    }
-
-    function oppCutMyWire() {
-      const randomWire = Math.floor(Math.random() * 10) + 1;
-      playSound('cut');
-
-      if (randomWire === myDeadWire) {
-        playSound('boom');
-        coins -= selectedBet;
-        document.getElementById('userCoins').innerText = coins;
-        document.getElementById('statusText').innerText = `💥 BÙM! Đối thủ cắt trúng DÂY CHẾT (${myDeadWire}) của bạn! Bạn OUT thành KHÁN GIẢ!`;
-        
-        myRole = 'spectator';
-        document.getElementById('p1Name').innerText = "Bạn (Khán Giả)";
-        document.getElementById('p1Avatar').src = "https://api.dicebear.com/7.x/bottts/svg?seed=Explode&backgroundColor=ff4757";
-      } else {
-        document.getElementById('statusText').innerText = `Đối thủ cắt Dây ${randomWire} AN TOÀN. Đến lượt bạn Oẳn Tù Tì!`;
-        document.getElementById('rpsButtons').style.display = 'flex';
-      }
-    }
-
-    function parseJwt(token) {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(window.atob(base64));
-    }
-
-    function handleCredentialResponse(response) {
-      const userObj = parseJwt(response.credential);
-      document.getElementById('authBox').style.display = 'none';
-      document.getElementById('p1Name').innerText = userObj.given_name;
-      document.getElementById('p1Avatar').src = `https://api.dicebear.com/7.x/bottts/svg?seed=${userObj.email}&backgroundColor=b6e3f4`;
-      playSound('win');
     }
   </script>
 </body>
