@@ -3,547 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oẳn Tù Tì Cắt Dây - Strict Room State & Auto Reset</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <title>Roshambo Wire Cutting</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@800;900&display=swap');
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; }
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e24;
+      --accent-color: #ff4757;
+      --text-color: #ffffff;
+      --subtext-color: #a0a0a0;
+    }
 
     body {
-      background: #3a88e9 linear-gradient(180deg, #5bb4ff 0%, #1e52ad 100%);
-      color: #fff;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-    }
-
-    .game-container {
-      width: 100%;
-      max-width: 1150px;
-      height: 680px;
-      background: radial-gradient(circle at center, #6bc5ff 0%, #205bc7 100%);
-      border: 6px solid #0e2a63;
-      border-radius: 28px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 15px;
-    }
-
-    .screen { display: none; width: 100%; height: 100%; position: absolute; top:0; left:0; padding:15px; }
-    .screen.active { display: flex; flex-direction: column; justify-content: space-between; }
-
-    /* HUD TOP BAR */
-    .top-hud { display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-    .profile-card {
-      background: #1b4594; border: 3px solid #0d285c; border-radius: 18px;
-      padding: 6px 14px 6px 6px; display: flex; align-items: center; gap: 10px;
-    }
-    .avatar-frame { width: 45px; height: 45px; background: #ffd200; border: 3px solid #fff; border-radius: 12px; overflow: hidden; }
-    .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
-    
-    .currency-pill {
-      background: #122b61; border: 2px solid #2d60bd; border-radius: 20px;
-      padding: 4px 12px; display: flex; align-items: center; gap: 6px;
-      font-family: 'Bungee'; font-size: 12px; color: #ffeb3b;
-    }
-
-    .main-logo {
-      font-family: 'Bungee', cursive; text-align: center; font-size: 32px; color: #fff200;
-      text-shadow: 4px 4px 0 #b32d00, -2px -2px 0 #000;
-      animation: floatLogo 3s ease-in-out infinite;
-    }
-
-    @keyframes floatLogo { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-
-    /* LOBBY CHỌN & NHẬP PHÒNG */
-    .lobby-box {
-      background: rgba(13, 33, 74, 0.88);
-      border: 4px solid #2d60bd;
-      border-radius: 24px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
       padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .game-container {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 25px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 0;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .status-panel {
+      background: #2a2a35;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 1.1em;
+    }
+
+    .section-title {
+      margin: 15px 0 10px 0;
+      font-weight: 600;
+      color: var(--subtext-color);
+    }
+
+    /* Roshambo Buttons */
+    .rps-choices {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .rps-btn {
+      background: #333342;
+      border: 2px solid #44445a;
+      color: #fff;
+      font-size: 2rem;
+      padding: 15px;
+      border-radius: 50%;
+      cursor: pointer;
+      width: 70px;
+      height: 70px;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .rps-btn:hover:not(:disabled) {
+      transform: scale(1.1);
+      background: #4f4f6e;
+    }
+
+    .rps-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Wires Grid */
+    .wires-container {
+      display: flex;
+      flex-direction: column;
       gap: 12px;
-      width: 480px;
-      margin: 0 auto;
+      margin-top: 15px;
     }
 
-    .room-input {
-      width: 85%; padding: 10px; border-radius: 14px;
-      border: 3px solid #ffd200; font-family: 'Bungee'; font-size: 18px;
-      text-align: center; outline: none; background: #091738; color: #fff;
+    .wire-btn {
+      height: 45px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1em;
+      position: relative;
+      transition: opacity 0.3s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .btn-action {
-      background: linear-gradient(180deg, #ffcc00 0%, #d48800 100%);
-      border: 3px solid #fff; border-radius: 16px; padding: 10px 20px;
-      font-family: 'Bungee'; font-size: 14px; color: #000; cursor: pointer;
-      box-shadow: 0 4px 0 #8c5a00; transition: transform 0.1s; width: 85%;
-    }
-    .btn-action:active { transform: translateY(3px); box-shadow: 0 1px 0 #8c5a00; }
-    .btn-blue { background: linear-gradient(180deg, #00d2ff 0%, #0066cc 100%); color: #fff; box-shadow: 0 4px 0 #003366; }
-    .btn-purple { background: linear-gradient(180deg, #d23bff 0%, #7b00b8 100%); color: #fff; box-shadow: 0 4px 0 #430063; }
-
-    /* LAYOUT BÀN ĐẤU & CHAT */
-    .battle-main-layout { display: flex; gap: 15px; height: 480px; }
-    .arena-section { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-    
-    /* BẢNG CHAT */
-    .chat-section {
-      width: 280px; background: rgba(10, 24, 56, 0.9);
-      border: 3px solid #2854ad; border-radius: 20px;
-      display: flex; flex-direction: column; padding: 10px; gap: 8px;
-    }
-    .chat-title { font-family: 'Bungee'; font-size: 12px; color: #ffeb3b; text-align: center; }
-    .chat-messages {
-      flex: 1; overflow-y: auto; background: #061026; border-radius: 12px;
-      padding: 8px; display: flex; flex-direction: column; gap: 6px; font-size: 12px;
-    }
-    .chat-msg-item { background: #162f63; padding: 5px 8px; border-radius: 8px; word-break: break-word; }
-    .chat-input-row { display: flex; gap: 5px; }
-    .chat-input {
-      flex: 1; background: #091738; border: 2px solid #2854ad;
-      border-radius: 10px; color: #fff; padding: 6px; font-size: 12px; outline: none;
+    .wire-btn:hover:not(:disabled) {
+      filter: brightness(1.2);
     }
 
-    /* BÀN CẮT DÂY */
-    .battle-arena { display: flex; justify-content: space-between; align-items: center; height: 320px; position: relative; }
-    .wire-column { display: flex; flex-direction: column; gap: 5px; width: 180px; }
-    .wire-item {
-      height: 26px; background: linear-gradient(90deg, #ff3b3b, #b30000);
-      border: 2px solid #fff; border-radius: 14px; display: flex;
-      justify-content: space-between; align-items: center; padding: 0 10px;
-      font-family: 'Bungee'; font-size: 10px; cursor: pointer;
-    }
-    .wire-item.blue { background: linear-gradient(90deg, #0099ff, #0044cc); }
-    .wire-item.cut { opacity: 0.25; filter: grayscale(1); cursor: not-allowed; text-decoration: line-through; }
-
-    .timer-badge {
-      font-family: 'Bungee'; font-size: 16px; background: #ff3366;
-      border: 3px solid #fff; padding: 4px 14px; border-radius: 30px;
+    .wire-btn:disabled {
+      cursor: not-allowed;
     }
 
-    .bet-bar {
-      background: #112652; border: 3px solid #2854ad; border-radius: 20px;
-      padding: 8px 15px; display: flex; justify-content: space-between; align-items: center;
+    .wire-btn.cut {
+      background-color: #444 !important;
+      color: #888;
+      text-decoration: line-through;
+      box-shadow: inset 0 0 10px #000;
     }
 
-    /* BẢNG EMOTE */
-    .emote-bar { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; }
-    .btn-emote {
-      background: #1b3d82; border: 2px solid #3b6ed4; border-radius: 10px;
-      padding: 4px 8px; font-size: 18px; cursor: pointer; transition: transform 0.1s;
-    }
-    .btn-emote:hover { transform: scale(1.2); }
-
-    /* POPUP BONG BÓNG EMOTE */
-    .emote-pop {
-      position: absolute; font-size: 50px; animation: popUpAnim 1.5s ease-out forwards;
-      pointer-events: none; z-index: 99;
-    }
-    @keyframes popUpAnim {
-      0% { opacity: 0; transform: translateY(0) scale(0.5); }
-      50% { opacity: 1; transform: translateY(-30px) scale(1.2); }
-      100% { opacity: 0; transform: translateY(-60px) scale(1); }
+    .wire-btn.cut::after {
+      content: '✂ CẮT';
+      position: absolute;
+      right: 15px;
+      color: #ff4757;
+      font-size: 0.8em;
+      text-decoration: none;
     }
 
-    /* MODAL */
-    .modal-overlay {
-      position: absolute; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.88); display: flex; flex-direction: column;
-      justify-content: center; align-items: center; z-index: 100;
+    /* Specific Wire Colors */
+    .wire-0 { background-color: #e74c3c; }
+    .wire-1 { background-color: #3498db; }
+    .wire-2 { background-color: #2ecc71; }
+    .wire-3 { background-color: #f1c40f; color: #000; }
+    .wire-4 { background-color: #9b59b6; }
+
+    /* Action / Restart Button */
+    .reset-btn {
+      margin-top: 25px;
+      padding: 12px 24px;
+      font-size: 1em;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
     }
-    .grid-select-dead { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
+
+    .reset-btn:hover {
+      background-color: #ff6b81;
+    }
   </style>
 </head>
 <body>
 
-  <div class="game-container">
-
-    <!-- TOP HUD -->
-    <div class="top-hud">
-      <div class="profile-card">
-        <div class="avatar-frame"><img id="myAvatarImg" src="https://api.dicebear.com/7.x/bottts/svg?seed=ProPlayer&backgroundColor=b6e3f4"></div>
-        <div style="display:flex; flex-direction:column;">
-          <span style="font-family:'Bungee'; font-size:13px;" id="myPlayerName">Player_Pro</span>
-          <span style="font-size:10px; color:#a2c4ff;" id="roleTxt">Chưa vào phòng</span>
-        </div>
-      </div>
-      <div class="currency-pill">🪙 <span id="txtCoins">10,000</span></div>
-    </div>
-
-    <!-- MÀN HÌNH TẠO / NHẬP PHÒNG -->
-    <div class="screen active" id="screenMenu">
-      <div class="main-logo">OẮN TÙ TÌ<br><span style="color:#00ff66;">CẮT DÂY</span></div>
-
-      <div class="lobby-box">
-        <h3 style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;">1. TẠO PHÒNG MỚI</h3>
-        <div style="display:flex; gap:10px; width:85%;">
-          <button class="btn-action" style="flex:1;" onclick="createNewRoom('player')">🎮 LÀM NGƯỜI CHƠI</button>
-          <button class="btn-action btn-purple" style="flex:1;" onclick="createNewRoom('spectator')">👁️ LÀM KHÁN GIẢ</button>
-        </div>
-
-        <div style="width:100%; border-top: 2px dashed #2d60bd; margin: 4px 0;"></div>
-
-        <h3 style="font-family:'Bungee'; color:#ffeb3b; font-size:14px;">2. NHẬP MÃ PHÒNG CÓ SẴN</h3>
-        <input type="text" id="inputRoomId" class="room-input" placeholder="NHẬP MÃ 4 SỐ" maxlength="4">
-        
-        <div style="display:flex; gap:10px; width:85%;">
-          <button class="btn-action btn-blue" style="flex:1;" onclick="joinRoom('player')">VÀO CHƠI</button>
-          <button class="btn-action btn-purple" style="flex:1;" onclick="joinRoom('spectator')">VÀO XEM</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MÀN HÌNH BÀN ĐẤU -->
-    <div class="screen" id="screenBattle">
-      <div style="display:flex; justify-content:space-between; align-items:center; z-index:5;">
-        <div style="display:flex; gap:10px; align-items:center;">
-          <span style="font-family:'Bungee'; background:#183875; padding:4px 12px; border-radius:12px; border:2px solid #fff;" id="roomDisplayCode">MÃ: ----</span>
-          <span style="font-family:'Bungee'; color:#ffeb3b; font-size:12px;" id="statusMsg">⏳ Đang chờ người chơi thứ 2...</span>
-        </div>
-        
-        <button id="btnRequestPlay" onclick="requestToPlay()" class="btn-action btn-purple" style="width:auto; padding:4px 12px; font-size:11px; display:none;">✋ XIN LÀM NGƯỜI CHƠI</button>
-        
-        <div class="timer-badge" id="timerTxt">⏱️ CHỜ NGƯỜI</div>
-        <button onclick="leaveBattle()" class="btn-action" style="width:auto; padding:4px 12px; background:#ff3366; color:#fff; font-size:11px;">Thoát</button>
-      </div>
-
-      <div class="battle-main-layout">
-        <div class="arena-section">
-          <div class="battle-arena" id="arenaBox">
-            <div class="wire-column" id="p1WireCol"></div>
-            <div style="text-align:center;">
-              <div id="handP1" style="font-size:60px;">✋</div>
-              <div style="font-family:'Bungee'; font-size:18px; color:#ffeb3b;" id="vsLabel">VS</div>
-              <div id="handP2" style="font-size:60px;">✊</div>
-            </div>
-            <div class="wire-column" id="p2WireCol"></div>
-          </div>
-
-          <div class="bet-bar">
-            <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:10px; color:#a2c4ff;">Emote trêu ghẹo:</span>
-              <div class="emote-bar">
-                <button class="btn-emote" onclick="sendEmote('🤡')">🤡</button>
-                <button class="btn-emote" onclick="sendEmote('🤣')">🤣</button>
-                <button class="btn-emote" onclick="sendEmote('💩')">💩</button>
-                <button class="btn-emote" onclick="sendEmote('💣')">💣</button>
-                <button class="btn-emote" onclick="sendEmote('✂️')">✂️</button>
-              </div>
-            </div>
-
-            <div style="display:flex; gap:6px;" id="rpsBtnGroup">
-              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('rock')">✊ Búa</button>
-              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('paper')">✋ Bao</button>
-              <button class="btn-action" style="width:auto; padding:6px 12px; font-size:11px;" onclick="chooseRPS('scissors')">✌️ Kéo</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="chat-section">
-          <div class="chat-title">💬 CHAT TRONG PHÒNG</div>
-          <div class="chat-messages" id="chatBox">
-            <div class="chat-msg-item"><b>Hệ thống:</b> Chào mừng bạn vào phòng!</div>
-          </div>
-          <div class="chat-input-row">
-            <input type="text" id="chatInput" class="chat-input" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-            <button class="btn-action" style="width:auto; padding:4px 10px; font-size:11px;" onclick="sendChatMessage()">Gửi</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL CHỌN DÂY CHẾT BAN ĐẦU -->
-    <div class="modal-overlay" id="deadWireModal" style="display:none;">
-      <h2 style="font-family:'Bungee'; color:#ffeb3b;">💣 CHỌN DÂY CHẾT BÍ MẬT CỦA BẠN (1-10)</h2>
-      <p style="font-size:12px; color:#a2c4ff; margin-top:5px;">Nếu đối thủ cắt trúng dây này, bạn sẽ NỔ VÀ THUA NGAY!</p>
-      <div class="grid-select-dead" id="deadWireGrid"></div>
-    </div>
-
-    <!-- MODAL ĐỔI CHỖ -->
-    <div class="modal-overlay" id="swapRequestModal" style="display:none;">
-      <h3 style="font-family:'Bungee'; color:#ffeb3b; text-align:center;" id="swapMsgTxt">Khán giả muốn xin đổi chỗ làm Người chơi!</h3>
-      <div style="display:flex; gap:15px; margin-top:20px;">
-        <button class="btn-action" style="width:auto; padding:8px 20px;" onclick="acceptSwap(true)">ĐỒNG Ý</button>
-        <button class="btn-action" style="width:auto; padding:8px 20px; background:#ff3366; color:#fff;" onclick="acceptSwap(false)">TỪ CHỐI</button>
-      </div>
-    </div>
-
+<div class="game-container">
+  <h1>Wire Cutter</h1>
+  
+  <div class="status-panel" id="status-text">
+    Hãy chọn Kéo, Búa hoặc Bao để đấu với Máy!
   </div>
 
-  <script>
-    let coins = 10000;
-    let role = 'player';
-    let currentRoomId = null;
-    let playerCount = 1; // Đếm số Người chơi (Cần = 2 mới chạy)
-    let myDeadWire = null;
-    let timer = 15;
-    let timerInterval = null;
-    let myChoice = null;
-    let isGameRunning = false;
+  <div class="section-title">BƯỚC 1: OẰN TÙ TÌ</div>
+  <div class="rps-choices">
+    <button class="rps-btn" onclick="playRPS('rock')" id="btn-rock">✊</button>
+    <button class="rps-btn" onclick="playRPS('paper')" id="btn-paper">✋</button>
+    <button class="rps-btn" onclick="playRPS('scissors')" id="btn-scissors">✌️</button>
+  </div>
 
-    // --- MỞ VÀ VÀO PHÒNG ---
-    function createNewRoom(selectedRole) {
-      currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-      enterBattleRoom(currentRoomId, selectedRole, true);
+  <div class="section-title">BƯỚC 2: CẮT DÂY (Cần thắng Oẳn tù tì)</div>
+  <div class="wires-container" id="wires-grid">
+    <!-- Dynamic Wires -->
+  </div>
+
+  <button class="reset-btn" onclick="initGame()">Chơi Lại</button>
+</div>
+
+<script>
+  const TOTAL_WIRES = 5;
+  let bombWireIndex = -1;
+  let safeWiresRemaining = 0;
+  let canCutWire = false;
+
+  const statusText = document.getElementById('status-text');
+  const wiresGrid = document.getElementById('wires-grid');
+  
+  const rpsButtons = [
+    document.getElementById('btn-rock'),
+    document.getElementById('btn-paper'),
+    document.getElementById('btn-scissors')
+  ];
+
+  function initGame() {
+    // 1. Reset variables
+    bombWireIndex = Math.floor(Math.random() * TOTAL_WIRES);
+    safeWiresRemaining = TOTAL_WIRES - 1;
+    canCutWire = false;
+
+    // 2. Reset UI Status
+    statusText.innerText = "Hãy chọn Kéo, Búa hoặc Bao để đấu với Máy!";
+    statusText.style.color = "#ffffff";
+
+    // 3. Enable RPS Buttons
+    setRPSActive(true);
+
+    // 4. Render Wires
+    wiresGrid.innerHTML = '';
+    for (let i = 0; i < TOTAL_WIRES; i++) {
+      const btn = document.createElement('button');
+      btn.className = `wire-btn wire-${i}`;
+      btn.innerText = `Sợi dây #${i + 1}`;
+      btn.id = `wire-${i}`;
+      btn.disabled = true; // Blocked until player wins RPS
+      btn.onclick = () => cutWire(i);
+      wiresGrid.appendChild(btn);
     }
+  }
 
-    function joinRoom(selectedRole) {
-      const roomInput = document.getElementById('inputRoomId').value.trim();
-      if (!roomInput || roomInput.length < 4) {
-        alert("Vui lòng nhập mã phòng 4 chữ số!");
-        return;
-      }
-      currentRoomId = roomInput;
-      enterBattleRoom(currentRoomId, selectedRole, false);
-    }
+  function setRPSActive(active) {
+    rpsButtons.forEach(btn => btn.disabled = !active);
+  }
 
-    function enterBattleRoom(roomId, userRole, isCreator) {
-      role = userRole;
-      document.getElementById('screenMenu').classList.remove('active');
-      document.getElementById('screenBattle').classList.add('active');
-      document.getElementById('roomDisplayCode').innerText = "MÃ: " + roomId;
-
-      // Giả lập: Người tạo phòng vào trước (1/2), người gia nhập sau (2/2)
-      playerCount = isCreator ? 1 : 2;
-
-      if (role === 'spectator') {
-        document.getElementById('roleTxt').innerText = "Khán Giả (Phòng " + roomId + ")";
-        document.getElementById('rpsBtnGroup').style.display = 'none';
-        document.getElementById('btnRequestPlay').style.display = 'block';
-        resetGameArena();
-        addChatMessage("Hệ thống", "Bạn tham gia với vai trò Khán giả.");
-        checkRoomReadyState();
-      } else {
-        document.getElementById('roleTxt').innerText = "Người Chơi (Phòng " + roomId + ")";
-        document.getElementById('rpsBtnGroup').style.display = 'flex';
-        document.getElementById('btnRequestPlay').style.display = 'none';
-        
-        // Luôn mở chọn dây chết bí mật trước khi vào trận
-        openDeadWireModal();
-      }
-    }
-
-    // --- RESET GAME VỀ BAN ĐẦU (KHI ĐỔI NGƯỜI HOẶC CÓ NGƯỜI CHẾT) ---
-    function resetGameArena() {
-      clearInterval(timerInterval);
-      isGameRunning = false;
-      myChoice = null;
-      myDeadWire = null;
-      document.getElementById('handP1').innerText = '✋';
-      document.getElementById('handP2').innerText = '✊';
-      document.getElementById('timerTxt').innerText = "⏱️ CHỜ NGƯỜI";
-      initWires(); // Dựng lại 10 dây nguyên vẹn
-      addChatMessage("Hệ thống", "🔄 Phòng đấu đã Reset lại trạng thái ban đầu!");
-    }
-
-    function initWires() {
-      const p1Col = document.getElementById('p1WireCol');
-      const p2Col = document.getElementById('p2WireCol');
-      p1Col.innerHTML = ''; p2Col.innerHTML = '';
-
-      for (let i = 1; i <= 10; i++) {
-        const w1 = document.createElement('div');
-        w1.className = 'wire-item blue';
-        w1.innerText = '⚡ DÂY ' + i;
-        p1Col.appendChild(w1);
-
-        const w2 = document.createElement('div');
-        w2.className = 'wire-item';
-        w2.innerText = 'DÂY ' + i + ' ✂️';
-        p2Col.appendChild(w2);
+  function setWiresActive(active) {
+    for (let i = 0; i < TOTAL_WIRES; i++) {
+      const wire = document.getElementById(`wire-${i}`);
+      if (!wire.classList.contains('cut')) {
+        wire.disabled = !active;
       }
     }
+  }
 
-    // --- LỰA CHỌN DÂY CHẾT BAN ĐẦU ---
-    function openDeadWireModal() {
-      const modal = document.getElementById('deadWireModal');
-      const grid = document.getElementById('deadWireGrid');
-      modal.style.display = 'flex';
-      grid.innerHTML = '';
+  function playRPS(playerChoice) {
+    const choices = ['rock', 'paper', 'scissors'];
+    const emojis = { rock: '✊', paper: '✋', scissors: '✌️' };
+    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
 
-      for (let i = 1; i <= 10; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-action';
-        btn.style.width = 'auto';
-        btn.innerText = 'Dây ' + i;
-        btn.onclick = () => {
-          myDeadWire = i;
-          modal.style.display = 'none';
-          resetGameArena();
-          checkRoomReadyState();
-        };
-        grid.appendChild(btn);
-      }
-    }
+    let resultMsg = `Bạn: ${emojis[playerChoice]} vs Máy: ${emojis[computerChoice]} -> `;
 
-    // --- PHÒNG ĐỦ 2 NGƯỜI MỚI BẮT ĐẦU ---
-    function checkRoomReadyState() {
-      if (playerCount < 2) {
-        document.getElementById('statusMsg').innerText = "⏳ Chưa đủ 2 người chơi. Đang chờ đối thủ...";
-        document.getElementById('timerTxt').innerText = "⏱️ CHỜ NGƯỜI";
-        // Giả lập sau 3s có P2 vào
-        setTimeout(() => {
-          playerCount = 2;
-          checkRoomReadyState();
-        }, 3000);
-      } else {
-        document.getElementById('statusMsg').innerText = "✅ Đã đủ 2 người chơi! Bắt đầu đếm ngược 15s!";
-        start15sTimer();
-      }
-    }
-
-    // --- VÒNG ĐẤU 15S OẮN TÙ TÌ ---
-    function start15sTimer() {
-      if (playerCount < 2) return; // Khóa cứng khi chưa đủ 2 người
+    if (playerChoice === computerChoice) {
+      statusText.innerText = resultMsg + "HÒA! Hãy đấu lại.";
+      statusText.style.color = "#f1c40f";
+    } else if (
+      (playerChoice === 'rock' && computerChoice === 'scissors') ||
+      (playerChoice === 'paper' && computerChoice === 'rock') ||
+      (playerChoice === 'scissors' && computerChoice === 'paper')
+    ) {
+      statusText.innerText = resultMsg + "THẮNG! Chọn 1 sợi dây để cắt.";
+      statusText.style.color = "#2ecc71";
+      canCutWire = true;
+      setRPSActive(false);
+      setWiresActive(true);
+    } else {
+      statusText.innerText = resultMsg + "THUA! Máy đã chọn cắt giúp bạn...";
+      statusText.style.color = "#e74c3c";
+      setRPSActive(false);
       
-      isGameRunning = true;
-      timer = 15;
-      myChoice = null;
-      document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
-      clearInterval(timerInterval);
-
-      timerInterval = setInterval(() => {
-        timer--;
-        document.getElementById('timerTxt').innerText = `⏱️ ${timer}s`;
-
-        if (timer <= 0) {
-          clearInterval(timerInterval);
-          if (!myChoice && role === 'player') {
-            const choices = ['rock', 'paper', 'scissors'];
-            myChoice = choices[Math.floor(Math.random() * 3)];
-            document.getElementById('statusMsg').innerText = "⚠️ Tự động chọn Búa/Bao/Kéo ngẫu nhiên!";
-          }
-          resolveRPS();
-        }
-      }, 1000);
-    }
-
-    function chooseRPS(choice) {
-      if (!isGameRunning) return;
-      myChoice = choice;
-      document.getElementById('statusMsg').innerText = "✅ Đã chốt đòn! Chờ hết 15s...";
-    }
-
-    function resolveRPS() {
-      const choices = ['rock', 'paper', 'scissors'];
-      const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
-      const oppChoice = choices[Math.floor(Math.random() * 3)];
-
-      document.getElementById('handP1').innerText = icons[myChoice || 'rock'];
-      document.getElementById('handP2').innerText = icons[oppChoice];
-
-      // Giả lập có người bấm trúng dây chết -> NỔ & RESET
-      const isDeadTriggered = Math.random() < 0.3; // 30% xác suất nổ dây chết
-
-      if (isDeadTriggered) {
-        document.getElementById('statusMsg').innerText = "💥 DÂY CHẾT BỊ CẮT! NGƯỜI CHƠI BỊ NỔ!";
-        addChatMessage("Hệ thống", "💥 Người chơi đã NỔ! Reset lại toàn bộ bàn đấu...");
-        
-        // Đếm ngược 10s sau khi chết rồi RESET
-        start10sPreparation(true);
-      } else {
-        document.getElementById('statusMsg').innerText = "🎉 Hoàn tất lượt đấu! Chuẩn bị lượt tiếp...";
-        start10sPreparation(false);
-      }
-    }
-
-    function start10sPreparation(shouldReset) {
-      let prepTime = 10;
-      document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
-      
-      const prepInterval = setInterval(() => {
-        prepTime--;
-        document.getElementById('timerTxt').innerText = `🔄 Chuẩn bị: ${prepTime}s`;
-        
-        if (prepTime <= 0) {
-          clearInterval(prepInterval);
-          if (shouldReset) {
-            // Reset về ban đầu khi có người chết
-            if (role === 'player') {
-              openDeadWireModal();
-            } else {
-              resetGameArena();
-              checkRoomReadyState();
-            }
-          } else {
-            // Tiếp tục lượt đấu mới
-            start15sTimer();
-          }
-        }
-      }, 1000);
-    }
-
-    // --- XIN ĐỔI CHỖ VÀ RESET ---
-    function requestToPlay() {
-      addChatMessage("Bạn", "Đã gửi yêu cầu xin làm Người chơi...");
+      // Computer cuts a random available wire
       setTimeout(() => {
-        if (role === 'player') {
-          document.getElementById('swapRequestModal').style.display = 'flex';
-        } else {
-          alert("Người chơi đã ĐỒNG Ý đổi chỗ! Bàn đấu sẽ được Reset ban đầu!");
-          role = 'player';
-          enterBattleRoom(currentRoomId, 'player', false);
-        }
+        botCutRandomWire();
       }, 1000);
     }
+  }
 
-    function acceptSwap(isAccepted) {
-      document.getElementById('swapRequestModal').style.display = 'none';
-      if (isAccepted) {
-        addChatMessage("Hệ thống", "Đã đổi người chơi! Tiến hành Reset bàn đấu...");
-        role = 'spectator';
-        enterBattleRoom(currentRoomId, 'spectator', false);
+  function cutWire(index) {
+    const wireBtn = document.getElementById(`wire-${index}`);
+    wireBtn.classList.add('cut');
+    wireBtn.disabled = true;
+
+    if (index === bombWireIndex) {
+      // Hit Bomb
+      statusText.innerText = "💥 BÙM! Bạn cắt trúng dây bom! GAME OVER.";
+      statusText.style.color = "#ff4757";
+      endGame();
+    } else {
+      // Safe Wire
+      safeWiresRemaining--;
+      if (safeWiresRemaining === 0) {
+        statusText.innerText = "🎉 CHÚC MỪNG! Bạn đã vô hiệu hóa hoàn toàn quả bom!";
+        statusText.style.color = "#2ecc71";
+        endGame();
       } else {
-        addChatMessage("Hệ thống", "Từ chối yêu cầu đổi chỗ.");
+        statusText.innerText = `An toàn! Cần cắt thêm ${safeWiresRemaining} dây nữa. Hãy đấu Oẳn tù tì tiếp.`;
+        statusText.style.color = "#ffffff";
+        canCutWire = false;
+        setWiresActive(false);
+        setRPSActive(true);
+      }
+    }
+  }
+
+  function botCutRandomWire() {
+    let uncutIndices = [];
+    for (let i = 0; i < TOTAL_WIRES; i++) {
+      const wire = document.getElementById(`wire-${i}`);
+      if (!wire.classList.contains('cut')) {
+        uncutIndices.push(i);
       }
     }
 
-    // --- CHAT & EMOTE ---
-    function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-      addChatMessage("Bạn", text);
-      input.value = '';
-    }
+    const randomIndex = uncutIndices[Math.floor(Math.random() * uncutIndices.length)];
+    cutWire(randomIndex);
+  }
 
-    function addChatMessage(sender, text) {
-      const chatBox = document.getElementById('chatBox');
-      const msgItem = document.createElement('div');
-      msgItem.className = 'chat-msg-item';
-      msgItem.innerHTML = `<b>${sender}:</b> ${text}`;
-      chatBox.appendChild(msgItem);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+  function endGame() {
+    setRPSActive(false);
+    setWiresActive(false);
+  }
 
-    function sendEmote(emoji) {
-      const arena = document.getElementById('arenaBox');
-      const pop = document.createElement('div');
-      pop.className = 'emote-pop';
-      pop.innerText = emoji;
-      pop.style.left = (Math.random() * 60 + 20) + '%';
-      pop.style.top = (Math.random() * 40 + 30) + '%';
-      arena.appendChild(pop);
-      setTimeout(() => pop.remove(), 1500);
-    }
+  // Run on load
+  initGame();
+</script>
 
-    function leaveBattle() {
-      clearInterval(timerInterval);
-      document.getElementById('screenBattle').classList.remove('active');
-      document.getElementById('screenMenu').classList.add('active');
-      document.getElementById('roleTxt').innerText = "Chưa vào phòng";
-      resetGameArena();
-    }
-  </script>
 </body>
 </html>
