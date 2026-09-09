@@ -356,19 +356,35 @@ let lobbyBirdTimer = null;
 let musicOn = true;
 let musicTimer = null;
 let musicStep = 0;
-const lobbyNotes = [196.00,220.00,246.94,293.66,261.63,246.94,220.00,329.63];
+let matchMusicNodes = null;
+let matchMusicTimer = null;
+const lobbyNotes = [261.63,293.66,329.63,392.00,440.00,392.00,329.63,293.66];
 
 function startAmbient(){
+  if(!musicOn) return;
   stopAmbient();
+  stopMatchMusic();
   const c = ac();
+  const now = c.currentTime;
+
+  // Healing-style sustained pad
   const master = c.createGain();
-  master.gain.setValueAtTime(0.0001,c.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.055,c.currentTime+0.9);
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.055, now+1.8);
   master.connect(c.destination);
-  ambientNodes = {master};
+
+  const pad = [];
+  [[130.81,'sine',0.022],[196.00,'sine',0.018],[261.63,'triangle',0.010]].forEach(([freq,type,vol],i)=>{
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.value=vol;
+    o.connect(g); g.connect(master); o.start();
+    pad.push({o,g});
+  });
+  ambientNodes = {master,pad};
   musicStep = 0;
   playLobbyMusicStep();
-  musicTimer = setInterval(playLobbyMusicStep, 620);
+  musicTimer = setInterval(playLobbyMusicStep, 1350);
   startLobbyBirds();
 }
 
@@ -377,20 +393,22 @@ function playLobbyMusicStep(){
   const c=ac(), now=c.currentTime;
   const root=lobbyNotes[musicStep % lobbyNotes.length];
   const osc=c.createOscillator(), g=c.createGain();
-  osc.type='triangle';
+  osc.type='sine';
   osc.frequency.setValueAtTime(root,now);
   g.gain.setValueAtTime(0.0001,now);
-  g.gain.linearRampToValueAtTime(0.10,now+0.05);
-  g.gain.exponentialRampToValueAtTime(0.0001,now+0.52);
+  g.gain.linearRampToValueAtTime(0.050,now+0.16);
+  g.gain.exponentialRampToValueAtTime(0.0001,now+1.10);
   osc.connect(g); g.connect(ambientNodes.master);
-  osc.start(now); osc.stop(now+0.55);
+  osc.start(now); osc.stop(now+1.15);
+
+  // Small bell-like upper note for a calm, airy feel
   if(musicStep%2===0){
     const hi=c.createOscillator(), hg=c.createGain();
     hi.type='sine'; hi.frequency.value=root*2;
-    hg.gain.setValueAtTime(0.0001,now);
-    hg.gain.linearRampToValueAtTime(0.028,now+0.06);
-    hg.gain.exponentialRampToValueAtTime(0.0001,now+0.4);
-    hi.connect(hg); hg.connect(ambientNodes.master); hi.start(now); hi.stop(now+0.43);
+    hg.gain.setValueAtTime(0.0001,now+0.28);
+    hg.gain.linearRampToValueAtTime(0.018,now+0.38);
+    hg.gain.exponentialRampToValueAtTime(0.0001,now+0.98);
+    hi.connect(hg); hg.connect(ambientNodes.master); hi.start(now+0.28); hi.stop(now+1.02);
   }
   musicStep++;
 }
@@ -401,7 +419,7 @@ function startLobbyBirds(){
 }
 function scheduleBirdChirp(){
   if(!musicOn || !ambientNodes) return;
-  const delay=2500+Math.random()*4200;
+  const delay=3500+Math.random()*5500;
   lobbyBirdTimer=setTimeout(()=>{
     if(ambientNodes && musicOn) playBirdChirp();
     scheduleBirdChirp();
@@ -409,20 +427,19 @@ function scheduleBirdChirp(){
 }
 function playBirdChirp(){
   const c=ac(), now=c.currentTime;
-  const base=1500+Math.random()*900;
+  const base=1700+Math.random()*750;
   const chirps=2+Math.floor(Math.random()*3);
   for(let i=0;i<chirps;i++){
     const o=c.createOscillator(), g=c.createGain();
     o.type='sine';
-    const t=now+i*0.11;
-    o.frequency.setValueAtTime(base*(0.85+Math.random()*0.08),t);
-    o.frequency.exponentialRampToValueAtTime(base*(1.25+Math.random()*0.18),t+0.07);
+    const t=now+i*0.13;
+    o.frequency.setValueAtTime(base*(0.78+Math.random()*0.08),t);
+    o.frequency.exponentialRampToValueAtTime(base*(1.20+Math.random()*0.22),t+0.07);
     g.gain.setValueAtTime(0.0001,t);
-    g.gain.linearRampToValueAtTime(0.05,t+0.018);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+0.11);
-    o.connect(g);
-    g.connect(ambientNodes?.master || c.destination);
-    o.start(t); o.stop(t+0.13);
+    g.gain.linearRampToValueAtTime(0.035,t+0.018);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.13);
+    o.connect(g); g.connect(ambientNodes?.master || c.destination);
+    o.start(t); o.stop(t+0.15);
   }
 }
 function stopLobbyBirds(){
@@ -436,49 +453,106 @@ function stopAmbient(){
   try{
     old.master.gain.cancelScheduledValues(now);
     old.master.gain.setValueAtTime(Math.max(old.master.gain.value,0.0001),now);
-    old.master.gain.exponentialRampToValueAtTime(0.0001,now+0.35);
+    old.master.gain.exponentialRampToValueAtTime(0.0001,now+0.45);
+    old.pad.forEach(x=>{try{x.o.stop(now+0.5)}catch(e){}});
   }catch(e){}
   ambientNodes=null;
+}
+
+// Slightly tense in-match background: soft pulse + low ostinato, not aggressive.
+function startMatchMusic(){
+  if(!musicOn) return;
+  stopAmbient();
+  stopMatchMusic();
+  const c=ac(), now=c.currentTime;
+  const master=c.createGain();
+  master.gain.setValueAtTime(0.0001,now);
+  master.gain.exponentialRampToValueAtTime(0.060,now+0.9);
+  master.connect(c.destination);
+  matchMusicNodes={master};
+
+  const pad=c.createOscillator(), pg=c.createGain();
+  pad.type='triangle'; pad.frequency.value=146.83;
+  pg.gain.value=0.022; pad.connect(pg); pg.connect(master); pad.start();
+  matchMusicNodes.pad=pad;
+
+  let step=0;
+  const seq=[146.83,174.61,196.00,174.61,130.81,174.61,196.00,220.00];
+  const tick=()=>{
+    if(!matchMusicNodes || !musicOn) return;
+    const t=c.currentTime, f=seq[step%seq.length];
+    const o=c.createOscillator(), g=c.createGain();
+    o.type='triangle'; o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.032,t+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+0.45);
+
+    const th=c.createOscillator(), tg=c.createGain();
+    th.type='sine'; th.frequency.value=72;
+    tg.gain.setValueAtTime(0.0001,t); tg.gain.linearRampToValueAtTime(0.055,t+0.02); tg.gain.exponentialRampToValueAtTime(0.0001,t+0.20);
+    th.connect(tg); tg.connect(master); th.start(t); th.stop(t+0.22);
+    step++;
+    matchMusicTimer=setTimeout(tick,520);
+  };
+  tick();
+}
+function stopMatchMusic(){
+  if(matchMusicTimer){clearTimeout(matchMusicTimer); matchMusicTimer=null;}
+  if(!matchMusicNodes) return;
+  const c=ac(), now=c.currentTime, old=matchMusicNodes;
+  try{
+    old.master.gain.cancelScheduledValues(now);
+    old.master.gain.setValueAtTime(Math.max(old.master.gain.value,0.0001),now);
+    old.master.gain.exponentialRampToValueAtTime(0.0001,now+0.35);
+    if(old.pad) old.pad.stop(now+0.4);
+  }catch(e){}
+  matchMusicNodes=null;
 }
 function toggleMusic(){
   musicOn=!musicOn;
   const b=document.getElementById('music-toggle');
   if(b){ b.textContent=musicOn?'🔊 Nhạc: Bật':'🔇 Nhạc: Tắt'; b.classList.toggle('on',musicOn); }
-  if(musicOn){ startAmbient(); playClick(); }
-  else stopAmbient();
+  if(musicOn){
+    if(phase==='idle') startAmbient();
+    else startMatchMusic();
+    playClick();
+  } else { stopAmbient(); stopMatchMusic(); }
 }
 
 let tensionNodes = null;
 function startTension(durationSec){
   stopTension();
   const c = ac(); const now = c.currentTime;
+  startMatchMusic();
   const osc = c.createOscillator(); const g = c.createGain();
   osc.type='triangle';
-  osc.frequency.setValueAtTime(180, now);
-  osc.frequency.linearRampToValueAtTime(520, now+durationSec);
+  osc.frequency.setValueAtTime(150, now);
+  osc.frequency.linearRampToValueAtTime(540, now+durationSec);
   g.gain.setValueAtTime(0.0001, now);
-  g.gain.linearRampToValueAtTime(0.05, now+0.3);
-  g.gain.linearRampToValueAtTime(0.09, now+durationSec);
+  g.gain.linearRampToValueAtTime(0.045, now+0.4);
+  g.gain.linearRampToValueAtTime(0.075, now+durationSec);
   osc.connect(g); g.connect(c.destination);
   osc.start();
   tensionNodes = {osc,g};
-  // soft heartbeat ticks that speed up
-  let tick = 0;
-  tensionNodes.tickInt = setInterval(()=>{
+  let tick=0;
+  const tickFn=()=>{
+    if(!tensionNodes) return;
+    const t=c.currentTime;
+    const b=c.createOscillator(), bg=c.createGain();
+    b.type='sine'; b.frequency.value=88;
+    bg.gain.setValueAtTime(0.0001,t); bg.gain.linearRampToValueAtTime(0.065,t+0.01); bg.gain.exponentialRampToValueAtTime(0.001,t+0.13);
+    b.connect(bg); bg.connect(c.destination); b.start(t); b.stop(t+0.14);
     tick++;
-    const t = c.currentTime;
-    const b = c.createOscillator(); const bg = c.createGain();
-    b.type='sine'; b.frequency.value = 90;
-    bg.gain.setValueAtTime(0.09, t); bg.gain.exponentialRampToValueAtTime(0.001, t+0.12);
-    b.connect(bg); bg.connect(c.destination);
-    b.start(); b.stop(t+0.13);
-  }, Math.max(220, 700 - tick*40));
+    tensionNodes.tickInt=setTimeout(tickFn,Math.max(210,620-tick*28));
+  };
+  tickFn();
 }
 function stopTension(){
   if(!tensionNodes) return;
   const c = ac(); const now = c.currentTime;
-  try{ tensionNodes.g.gain.linearRampToValueAtTime(0, now+0.25); tensionNodes.osc.stop(now+0.3);}catch(e){}
-  clearInterval(tensionNodes.tickInt);
+  try{ tensionNodes.g.gain.linearRampToValueAtTime(0, now+0.22); tensionNodes.osc.stop(now+0.28);}catch(e){}
+  clearTimeout(tensionNodes.tickInt);
   tensionNodes = null;
 }
 
@@ -711,7 +785,7 @@ function createHumanWaitingRoom(code){
   if(!/^\d{4}$/.test(code)){toast('Không có mã phòng hợp lệ');return;}
   startNewSession();
   myRole='p1';
-  seats.p1={name:publicPlayerName,isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍💻',connected:true};
+  seats.p1={name:publicPlayerName||googleUser?.name||'Chủ phòng',isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍💻',connected:true};
   seats.p2=null;
   showScreen('screen-arena');
   document.getElementById('rps-group').style.display='none';
@@ -792,11 +866,12 @@ function submitJoinCode(){
 }
 
 /* =========================================================
-   REALTIME ROOM NETWORK (PeerJS)
+   REALTIME ROOM NETWORK (PeerJS) — stable room IDs
    ========================================================= */
 let peer=null;
 let peerConnections=[];
 let roomCode='';
+let roomPeerId='';
 let roomIsHost=false;
 let roomReady=false;
 let roomPlayerName='';
@@ -805,151 +880,228 @@ let secretModalOpen=false;
 let roomStartCountdown=0;
 let roomCountdownTimer=null;
 
+function hostPeerIdFor(code){ return 'owtt-room-'+String(code); }
+function roomBadge(){ return document.getElementById('room-code-badge'); }
+function setRoomBadge(){ const b=roomBadge(); if(b) b.textContent='Phòng: '+(roomCode||'—'); }
+
 function closePeerRoom(){
-  roomReady=false; roomIsHost=false; roomCode=''; roomPlayerName=''; lastNetPhase=''; secretModalOpen=false; roomStartCountdown=0; if(roomCountdownTimer){clearInterval(roomCountdownTimer); roomCountdownTimer=null;}
+  if(roomCountdownTimer){clearInterval(roomCountdownTimer);roomCountdownTimer=null;}
   peerConnections.forEach(c=>{try{c.close()}catch(e){}}); peerConnections=[];
   if(peer){try{peer.destroy()}catch(e){}}
-  peer=null;
+  peer=null; roomReady=false; roomIsHost=false; roomCode=''; roomPeerId=''; roomPlayerName=''; lastNetPhase=''; secretModalOpen=false; roomStartCountdown=0;
 }
 function stateForConn(conn){
   const st={
     seats:{p1:seats.p1?{...seats.p1}:null,p2:seats.p2?{...seats.p2}:null},
-    spectators:spectators.map(x=>({...x})), p1Move,p2Move,currentRoundWinner,phase,roomCode,roomStartCountdown
+    spectators:spectators.map(x=>({...x})),
+    p1Move,p2Move,currentRoundWinner,phase,roomCode,roomStartCountdown,
+    roomReady:true
   };
-  ['p1','p2'].forEach(k=>{ if(st.seats[k] && conn?._roomRole!==k) st.seats[k].secretWire=null; });
+  ['p1','p2'].forEach(k=>{ if(st.seats[k] && conn && conn._roomRole!==k) st.seats[k].secretWire=null; });
   return st;
 }
 function broadcastState(){
-  const badge=document.getElementById('room-code-badge'); if(badge) badge.textContent='Phòng: '+(roomCode||'—');
-  if(!roomIsHost) return;
+  setRoomBadge();
+  if(!roomIsHost)return;
   peerConnections=peerConnections.filter(c=>c&&c.open);
   peerConnections.forEach(c=>{try{c.send({type:'state',state:stateForConn(c)})}catch(e){}});
 }
 function broadcastEvent(event){
-  if(!roomIsHost) return;
+  if(!roomIsHost)return;
   peerConnections=peerConnections.filter(c=>c&&c.open);
   peerConnections.forEach(c=>{try{c.send({type:'event',event})}catch(e){}});
 }
 function sendToHost(msg){
-  if(roomIsHost) return false;
-  const c=peerConnections[0];
-  if(c?.open){try{c.send(msg);return true;}catch(e){}}
-  toast('Kết nối phòng chưa sẵn sàng'); return false;
+  if(roomIsHost)return false;
+  const c=peerConnections.find(x=>x&&x.open);
+  if(c){try{c.send(msg);return true}catch(e){}}
+  toast('Kết nối phòng chưa sẵn sàng.'); return false;
 }
 function startRoomStartCountdown(){
-  if(!roomIsHost || !seats.p1 || !seats.p2) return;
-  if(roomCountdownTimer){ clearInterval(roomCountdownTimer); roomCountdownTimer=null; }
+  if(!roomIsHost || !seats.p1 || !seats.p2)return;
+  if(roomCountdownTimer){clearInterval(roomCountdownTimer);roomCountdownTimer=null;}
   clearInterval(phaseTimer);
-  phase='idle';
+  phase='idle'; p1Move=null; p2Move=null; currentRoundWinner=null;
   roomStartCountdown=5;
   document.getElementById('rps-group').style.display='none';
-  setStatus('🎮 Đủ 2 người chơi · trận đấu bắt đầu sau 5 giây');
-  setTimer(roomStartCountdown+'s');
-  renderSeats();
-  broadcastState();
+  setStatus('🎮 Đủ 2 người chơi · bắt đầu sau 5 giây');
+  setTimer('5s');
+  renderSeats(); broadcastState();
   roomCountdownTimer=setInterval(()=>{
     roomStartCountdown--;
-    setTimer(roomStartCountdown>0 ? roomStartCountdown+'s' : 'GO!');
-    broadcastState();
-    if(roomStartCountdown<=0){
-      clearInterval(roomCountdownTimer);
-      roomCountdownTimer=null;
+    if(roomStartCountdown>0){
+      setStatus('🎮 Đủ 2 người chơi · bắt đầu sau '+roomStartCountdown+' giây');
+      setTimer(roomStartCountdown+'s');
+      broadcastState();
+    }else{
+      clearInterval(roomCountdownTimer);roomCountdownTimer=null;
+      setTimer('GO!');
+      broadcastState();
       roomStartCountdown=0;
       beginSecretPickPhase();
     }
   },1000);
 }
-
 function startPeerHost(code){
-  closePeerRoom(); roomCode=code; roomIsHost=true; roomReady=false;
-  peer=new Peer(code,{debug:1});
-  peer.on('open',()=>{roomReady=true; setStatus(`Phòng ${roomCode} · đang chờ P2...`); broadcastState();});
+  closePeerRoom();
+  roomCode=String(code); roomPeerId=hostPeerIdFor(roomCode); roomIsHost=true;
+  setRoomBadge();
+  // Host is ALWAYS P1. This function is called only after createHumanWaitingRoom assigned P1.
+  if(!seats.p1){
+    seats.p1={name:publicPlayerName||googleUser?.name||'Chủ phòng',isBot:false,secretWire:null,wiresCut:[],isMe:true,avatar:'🧑‍💻',connected:true};
+    myRole='p1';
+    renderSeats();
+  }
+  peer=new Peer(roomPeerId,{debug:0});
+  peer.on('open',()=>{
+    roomReady=true;
+    setStatus('Phòng '+roomCode+' · Bạn là P1 · đang chờ P2...');
+    setTimer('--');
+    renderSeats(); broadcastState();
+  });
   peer.on('connection',conn=>{
+    conn._roomRole='pending';
     peerConnections.push(conn);
-    conn.on('open',()=>{conn.on('data',msg=>handleNetMessage(conn,msg)); conn.send({type:'helloAck',roomCode});});
+    conn.on('open',()=>{
+      try{conn.send({type:'hello',roomCode,roomPeerId});}catch(e){}
+    });
+    conn.on('data',msg=>handleNetMessage(conn,msg));
     conn.on('close',()=>{
+      peerConnections=peerConnections.filter(c=>c!==conn);
       if(conn._roomRole==='p2' && seats.p2?.peerId===conn.peer){
-        seats.p2=null; p2Move=null; phase='idle'; document.getElementById('rps-group').style.display='none';
-        setStatus('P2 đã rời phòng · đang chờ người chơi khác...'); renderSeats(); broadcastState();
+        seats.p2=null; p2Move=null; phase='idle'; roomStartCountdown=0;
+        if(roomCountdownTimer){clearInterval(roomCountdownTimer);roomCountdownTimer=null;}
+        document.getElementById('rps-group').style.display='none';
+        setStatus('P2 đã rời phòng · đang chờ người chơi khác...'); setTimer('--'); renderSeats(); broadcastState();
       }
     });
   });
-  peer.on('error',err=>toast(err.type==='unavailable-id'?'Mã phòng đang được sử dụng. Hãy tạo mã khác.':'Lỗi máy chủ phòng: '+(err.type||'không xác định')));
+  peer.on('error',err=>{
+    const t=err?.type||'';
+    if(t==='unavailable-id'){
+      toast('Mã phòng đang được sử dụng. Hãy tạo phòng khác.');
+      setStatus('Mã phòng không khả dụng · hãy tạo phòng mới');
+    }else{
+      toast('Không kết nối được máy chủ phòng: '+t);
+    }
+  });
 }
 function joinOnlineRoom(code,role){
-  if(role==='player' && !requireGoogleLogin()) return;
-  startNewSession(); roomCode=code; roomIsHost=false; roomReady=false;
+  if(role==='player' && !requireGoogleLogin())return;
+  closePeerRoom();
+  roomCode=String(code); roomPeerId=hostPeerIdFor(roomCode); roomIsHost=false; roomReady=false;
   myRole=role==='player'?'pendingPlayer':'spectator';
-  showScreen('screen-arena'); document.getElementById('spectator-tools').style.display='none';
-  setStatus(`Đang kết nối phòng ${code}...`); setTimer('--');
-  peer=new Peer(undefined,{debug:1});
+  startAmbient(); showScreen('screen-arena'); document.getElementById('spectator-tools').style.display='none';
+  setStatus('Đang kết nối phòng '+roomCode+'...'); setTimer('--'); setRoomBadge();
+  peer=new Peer(undefined,{debug:0});
   peer.on('open',()=>{
-    const conn=peer.connect(code,{reliable:true});
-    conn.on('open',()=>{peerConnections=[conn];roomReady=true;conn._roomRole=role==='player'?'pendingPlayer':'spectator';conn.send({type:'join',role,name:publicPlayerName||googleUser?.name||'Khán giả',avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]});});
+    const conn=peer.connect(roomPeerId,{reliable:true,serialization:'json'});
+    conn._roomRole='pendingPlayer'; peerConnections=[conn];
+    conn.on('open',()=>{
+      roomReady=true;
+      const requestedRole=role==='player'?'player':'spectator';
+      conn.send({type:'join',role:requestedRole,name:publicPlayerName||googleUser?.name||'Khán giả',avatar:avatarSet[Math.floor(Math.random()*avatarSet.length)]});
+      setStatus('Đã kết nối · đang chờ máy chủ xác nhận...');
+    });
     conn.on('data',msg=>handleNetMessage(conn,msg));
-    conn.on('close',()=>{toast('Mất kết nối phòng.');setStatus('Mất kết nối phòng.');});
+    conn.on('close',()=>{roomReady=false;toast('Mất kết nối phòng.');setStatus('Mất kết nối phòng.');setTimer('--');});
   });
-  peer.on('error',err=>toast(err.type==='peer-unavailable'?'Không tìm thấy phòng '+code:'Lỗi kết nối phòng'));
+  peer.on('error',err=>{
+    const t=err?.type||'';
+    if(t==='peer-unavailable'){
+      toast('Không tìm thấy phòng '+roomCode+'. Kiểm tra lại mã.');
+      setStatus('Không tìm thấy phòng '+roomCode);
+    }else toast('Lỗi kết nối phòng: '+t);
+  });
 }
 function handleNetMessage(conn,msg){
-  if(!msg) return;
+  if(!msg)return;
   if(roomIsHost && msg.type==='join'){
-    const role=msg.role==='player'&&!seats.p2?'p2':'spectator'; conn._roomRole=role;
-    if(role==='p2'){
+    // First real player after the host gets P2. Everyone else becomes spectator.
+    let assigned='spectator';
+    if(msg.role==='player' && !seats.p2){ assigned='p2'; }
+    conn._roomRole=assigned;
+    if(assigned==='p2'){
       seats.p2={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer};
-      setStatus('P1 và P2 đã sẵn sàng!'); renderSeats();
-      conn.send({type:'assigned',role,roomCode}); broadcastState(); startRoomStartCountdown();
+      conn.send({type:'assigned',role:'p2',roomCode});
+      renderSeats(); broadcastState();
+      setStatus('P1 + P2 đã vào phòng · chuẩn bị bắt đầu...');
+      startRoomStartCountdown();
     }else{
-      spectators.push({name:msg.name,isBot:false,peerId:conn.peer}); conn.send({type:'assigned',role,roomCode}); renderSeats(); broadcastState();
-      toast(`${msg.name} đã vào làm khán giả`);
+      spectators.push({name:msg.name,isBot:false,peerId:conn.peer});
+      conn.send({type:'assigned',role:'spectator',roomCode});
+      broadcastState();
+      toast(msg.name+' đã vào làm khán giả');
     }
     return;
   }
   if(roomIsHost && msg.type==='secret'){
-    const seat=msg.seat; if((seat==='p1'||seat==='p2')&&seats[seat]&&(seat==='p1'?conn._roomRole==='p1':seats.p2.peerId===conn.peer)){
+    const seat=msg.seat;
+    const allowed=(seat==='p1'&&conn._roomRole==='p1')||(seat==='p2'&&conn._roomRole==='p2');
+    if(allowed && seats[seat] && Number.isInteger(Number(msg.wire)) && Number(msg.wire)>=1 && Number(msg.wire)<=10){
       seats[seat].secretWire=Number(msg.wire); renderSeats(); broadcastState(); proceedIfSecretsReady();
     }
     return;
   }
   if(roomIsHost && msg.type==='rps'){
-    const seat=msg.seat; if((seat==='p1'||seat==='p2')&&seats[seat]&&seats[seat].peerId===conn.peer&&phase==='rps'){
-      if(seat==='p1')p1Move=msg.move;else p2Move=msg.move; broadcastState(); if(p1Move&&p2Move) revealRPS();
+    const seat=msg.seat; const allowed=(seat==='p1'&&conn._roomRole==='p1')||(seat==='p2'&&conn._roomRole==='p2');
+    if(allowed && seats[seat] && phase==='rps'){
+      if(seat==='p1')p1Move=msg.move;else p2Move=msg.move;
+      broadcastState(); if(p1Move&&p2Move)revealRPS();
     }
     return;
   }
   if(roomIsHost && msg.type==='cut'){
-    const winner=currentRoundWinner==='P1'?'p1':'p2'; if(phase==='cut'&&seats[winner]?.peerId===conn.peer) cutWire(msg.seat,Number(msg.wire));
+    const winner=currentRoundWinner==='P1'?'p1':'p2';
+    if(phase==='cut'&&seats[winner]?.peerId===conn.peer)cutWire(msg.seat,Number(msg.wire));
     return;
   }
   if(roomIsHost && msg.type==='register'){
-    const seat=!seats.p1?'p1':(!seats.p2?'p2':null); if(seat){ conn._roomRole=seat; seats[seat]={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer}; broadcastState(); if(seats.p1&&seats.p2)beginSecretPickPhase(); }
+    const seat=!seats.p1?'p1':(!seats.p2?'p2':null);
+    if(seat){
+      conn._roomRole=seat;
+      seats[seat]={name:msg.name,isBot:false,secretWire:null,wiresCut:[],isMe:false,avatar:msg.avatar||'🧑‍🚀',connected:true,peerId:conn.peer};
+      broadcastState(); renderSeats(); if(seats.p1&&seats.p2)startRoomStartCountdown();
+    }
     return;
   }
-  if(msg.type==='assigned'){ myRole=msg.role; roomReady=true; renderSeats(); return; }
-  if(msg.type==='state') applyRemoteState(msg.state);
-  if(msg.type==='event') handleRemoteEvent(msg.event);
+  if(msg.type==='assigned'){
+    myRole=msg.role; roomReady=true; setStatus(msg.role==='p2'?'Bạn đã vào P2!':'Bạn đang xem với vai trò khán giả.'); renderSeats(); return;
+  }
+  if(msg.type==='hello'){
+    try{conn.send({type:'state',state:stateForConn(conn)});}catch(e){}
+    return;
+  }
+  if(msg.type==='state')applyRemoteState(msg.state);
+  if(msg.type==='event')handleRemoteEvent(msg.event);
 }
 function applyRemoteState(st){
   if(roomIsHost||!st)return;
-  const badge=document.getElementById('room-code-badge'); if(badge)badge.textContent='Phòng: '+(st.roomCode||roomCode||'—');
-  const prev=lastNetPhase;
-  const previousMyRole=myRole;
-  seats.p1=st.seats?.p1||null; seats.p2=st.seats?.p2||null; spectators=st.spectators||[]; p1Move=st.p1Move||null;p2Move=st.p2Move||null;currentRoundWinner=st.currentRoundWinner||null;phase=st.phase||'idle';roomCode=st.roomCode||roomCode;roomStartCountdown=Number(st.roomStartCountdown||0);lastNetPhase=phase;
-  if((previousMyRole==='p1'||previousMyRole==='p2') && !seats[previousMyRole] && phase==='idle'){ myRole='spectator'; document.getElementById('spectator-tools').style.display='none'; }
+  const prev=lastNetPhase; const previousMyRole=myRole;
+  seats.p1=st.seats?.p1||null; seats.p2=st.seats?.p2||null; spectators=st.spectators||[];
+  p1Move=st.p1Move||null; p2Move=st.p2Move||null; currentRoundWinner=st.currentRoundWinner||null; phase=st.phase||'idle'; roomCode=st.roomCode||roomCode; roomStartCountdown=Number(st.roomStartCountdown||0); lastNetPhase=phase;
+  if((previousMyRole==='p1'||previousMyRole==='p2')&&!seats[previousMyRole]){
+    myRole='spectator'; document.getElementById('spectator-tools').style.display='none';
+    secretModalOpen=false; closeModal();
+  }
   ['p1','p2'].forEach(k=>{if(seats[k])seats[k].isMe=(myRole===k);});
   document.getElementById('rps-group').style.display=(phase==='rps'&&(myRole==='p1'||myRole==='p2'))?'flex':'none';
-  if(roomStartCountdown>0){ setStatus('🎮 Đủ 2 người chơi · trận đấu bắt đầu sau '+roomStartCountdown+' giây'); setTimer(roomStartCountdown+'s'); }
-  renderSeats();
+  if(roomStartCountdown>0){setStatus('🎮 Đủ 2 người chơi · bắt đầu sau '+roomStartCountdown+' giây');setTimer(roomStartCountdown+'s');}
+  else if(roomStartCountdown===0 && phase==='idle')setTimer('--');
+  renderSeats(); setRoomBadge();
   if(phase==='secretpick'&&(myRole==='p1'||myRole==='p2')&&seats[myRole]?.secretWire===null&&!secretModalOpen)openWirePickerModal(myRole);
-  if(phase==='idle'){stopTension();startAmbient();}else{stopAmbient();}
+  if(phase==='idle'){stopTension();startAmbient();}else stopAmbient();
   if(phase==='cut'&&prev!=='cut')renderCutGrids(currentRoundWinner==='P1'?'p2':'p1');
 }
 function handleRemoteEvent(e){
-  if(!e)return; if(e.type==='rpsReveal')playResultReveal(); else if(e.type==='safeCut'){playSafeSnip();toast('✂️ Cắt an toàn!');} else if(e.type==='death'){triggerDeathEffect(e.seat,e.wire);renderDeadWireFlash(e.seat,e.wire);}
+  if(!e)return;
+  if(e.type==='rpsReveal')playResultReveal();
+  else if(e.type==='safeCut'){playSafeSnip();toast('✂️ Cắt an toàn!');}
+  else if(e.type==='death'){triggerDeathEffect(e.seat,e.wire);renderDeadWireFlash(e.seat,e.wire);}
 }
-function netSecretChosen(seat,wire){ if(roomIsHost){seats[seat].secretWire=wire;broadcastState();proceedIfSecretsReady();}else sendToHost({type:'secret',seat,wire}); }
-function netRpsChosen(seat,move){ if(roomIsHost){if(seat==='p1')p1Move=move;else p2Move=move;broadcastState();if(p1Move&&p2Move)revealRPS();}else sendToHost({type:'rps',seat,move}); }
-function netCut(seat,wire){ if(roomIsHost)cutWire(seat,wire);else sendToHost({type:'cut',seat,wire}); }
+function netSecretChosen(seat,wire){if(roomIsHost){seats[seat].secretWire=wire;broadcastState();proceedIfSecretsReady();}else sendToHost({type:'secret',seat,wire});}
+function netRpsChosen(seat,move){if(roomIsHost){if(seat==='p1')p1Move=move;else p2Move=move;broadcastState();if(p1Move&&p2Move)revealRPS();}else sendToHost({type:'rps',seat,move});}
+function netCut(seat,wire){if(roomIsHost)cutWire(seat,wire);else sendToHost({type:'cut',seat,wire});}
 
 /* =========================================================
    SESSION / RENDER
@@ -1084,8 +1236,8 @@ function proceedIfSecretsReady(){
    RPS PHASE (10s)
    ========================================================= */
 function startRPSPhase(){
-  if(!roomIsHost){ phase='rps'; stopAmbient(); setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)'); document.getElementById('rps-group').style.display=(myRole==='p1'||myRole==='p2')?'flex':'none'; renderSeats(); return; }
-  stopAmbient(); phase='rps'; p1Move=null; p2Move=null;
+  if(!roomIsHost){ phase='rps'; stopAmbient(); startMatchMusic(); setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)'); document.getElementById('rps-group').style.display=(myRole==='p1'||myRole==='p2')?'flex':'none'; renderSeats(); return; }
+  stopAmbient(); stopMatchMusic(); startMatchMusic(); phase='rps'; p1Move=null; p2Move=null;
   document.getElementById('p1-move').textContent='❓'; document.getElementById('p2-move').textContent='❓';
   document.querySelectorAll('.rps-btn').forEach(b=>b.classList.remove('picked')); setStatus('BƯỚC 1 · Oẳn Tù Tì (Kéo Búa Bao)'); renderSeats(); broadcastState();
   let t=10; setTimer(t+'s'); clearInterval(phaseTimer); phaseTimer=setInterval(()=>{t--;if(t<0){clearInterval(phaseTimer);if(!p1Move||!p2Move){toast('⏳ Có người chưa chọn — chơi lại.');startRPSPhase();return;}revealRPS();return;}setTimer(t+'s');},1000);
@@ -1370,7 +1522,7 @@ function predictWinner(){toast('Khán giả chỉ xem trận đấu.');}
    ========================================================= */
 function leaveArena(){
   closePeerRoom();
-  stopAmbient(); stopTension();
+  stopAmbient(); stopMatchMusic(); stopTension();
   clearInterval(phaseTimer); clearTimeout(botMoveTimeout); clearTimeout(window._seatFillTimeout);
   showScreen('screen-home');
   syncCoinsUI();
@@ -1378,7 +1530,7 @@ function leaveArena(){
 
 syncCoinsUI();
 renderHomeProfile();
-const roomBadge=document.getElementById('room-code-badge'); if(roomBadge) roomBadge.textContent='Phòng: —';
+const roomBadgeEl=document.getElementById('room-code-badge'); if(roomBadgeEl) roomBadgeEl.textContent='Phòng: —';
 window.addEventListener('load',()=>{ setTimeout(initGoogleSignIn,300); });
 </script>
 </body>
